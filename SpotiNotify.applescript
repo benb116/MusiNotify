@@ -38,19 +38,21 @@ try
 end try
 set nme to ""
 repeat
+	delay 0.5
 	tell application "System Events"
 		set applist to (name of every process)
 		if applist contains "Spotify" then
 			try
 				repeat
+					delay 0.5
 					tell application "Spotify"
 						set trk to name of current track
 						set art to artist of current track
 					end tell
-					if art is not equal to "Spotify" then
+					if art is not equal to "Spotify" and art is not equal to "Universal Music" then
 						if trk is not equal to nme then
 							set nme to trk
-							do shell script "terminal-notifier -subtitle \"" & nme & "\" -title \"Current Track on Spotify\" -message \"By " & art & "\" -group SP -activate /Applications/Spotify.app"
+							do shell script "terminal-notifier -subtitle \"" & nme & "\" -title \"Current Track - Spotify\" -message \"By " & art & "\" -group SP -activate /Applications/Spotify.app"
 						end if
 					end if
 				end repeat
