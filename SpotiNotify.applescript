@@ -19,9 +19,9 @@ try
 		set inst to button returned of (display dialog "Click OK to install necessary plugins" buttons {"Quit", "OK"} with title "SpotiNotify" default button 2)
 		if inst = "Quit" then
 			try
-		set the_pid to (do shell script "ps ax | grep " & (quoted form of "SpotiNotify") & " | grep -v grep | awk '{print $1}'")
-		if the_pid is not "" then do shell script ("kill -9 " & the_pid)
-	end try
+				set the_pid to (do shell script "ps ax | grep " & (quoted form of "SpotiNotify") & " | grep -v grep | awk '{print $1}'")
+				if the_pid is not "" then do shell script ("kill -9 " & the_pid)
+			end try
 		end if
 		try
 			do shell script "sudo gem install terminal-notifier" with administrator privileges -- Install terminal-notifier
@@ -63,7 +63,7 @@ repeat
 					if art is not equal to "Spotify" and art is not equal to "Universal Music" and art is not equal to "Temple University" then -- If the track is not an ad...
 						if trk is not equal to nme then -- If track has changed...
 							set nme to trk
-							do shell script "terminal-notifier -subtitle \"" & nme & "\" -title \"Current Track - Spotify\" -message \"By " & art & "\" -group SP -activate /Applications/Spotify.app" -- Display the notification
+							do shell script "terminal-notifier -subtitle \"" & nme & "\" -title \"Current Track - Spotify\" -message \"By " & art & "\" -group SP -execute \"open /Applications/Spotify.app\"" -- Display the notification
 						end if
 					end if
 				end repeat
