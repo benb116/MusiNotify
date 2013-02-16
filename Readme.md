@@ -5,7 +5,7 @@ This is a plugin for Mac OS X 10.8 and up. It displays a notification using [Ter
 
 <center>
 
-![image](http://cl.ly/Msvp/Screen%20Shot%202013-02-13%20at%205.33.22%20PM.png)
+![image](http://cl.ly/MxjT/Screen%20Shot%202013-02-16%20at%2012.39.21%20PM.png)
 
 
-![image](http://cl.ly/Mt5m/Screen%20Shot%202013-02-13%20at%205.36.53%20PM.png)
+![image](http://cl.ly/Mx93/Screen%20Shot%202013-02-16%20at%2012.38.36%20PM.png)
