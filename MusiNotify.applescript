@@ -46,30 +46,45 @@ try
 		end try
 	end if
 end try
-set nme to ""
-do shell script "open /Applications/Spotify.app"
+set snme to ""
+set inme to ""
 repeat
 	delay 0.1
 	tell application "System Events"
 		set applist to (name of every process)
 		if applist contains "Spotify" then -- Check to see if Spotify is running
 			try
-				repeat
-					delay 0.1
-					tell application "Spotify"
-						set trk to name of current track -- Get Track info
-						set art to artist of current track
-						set adlist to {"Spotify", "Universal Music", "Temple University", "Warner Music", "Nettwerk"}
-					end tell
-					if adlist does not contain art then -- If the track is not an ad...
-						if trk is not equal to nme then -- If track has changed...
-							set nme to trk
-							tell application (POSIX path of (path to me))
-								do shell script "terminal-notifier -subtitle \"" & nme & "\" -title \"Spotify - Now Playing\" -message \"By " & art & "\" -group SP -execute \"open /Applications/Spotify.app\"" -- Display the notification
-							end tell
-						end if
+				delay 0.1
+				tell application "Spotify"
+					set strk to name of current track -- Get Track info
+					set sart to artist of current track
+					set adlist to {"Spotify", "Universal Music", "Temple University", "Warner Music", "Nettwerk", "Sony Music"}
+				end tell
+				if adlist does not contain sart then -- If the track is not an ad...
+					if strk is not equal to snme then -- If track has changed...
+						set snme to strk
+						tell application (POSIX path of (path to me))
+							do shell script "terminal-notifier -subtitle \"" & snme & "\" -title \"Spotify - Now Playing\" -message \"By " & sart & "\" -group SP -execute \"open /Applications/Spotify.app\"" -- Display the notification
+						end tell
 					end if
-				end repeat
+				end if
+			end try
+		end if
+		if applist contains "iTunes" then -- Check to see if Spotify is running
+			try
+				delay 0.1
+				tell application "iTunes"
+					if current track exists then
+						set itrk to name of current track -- Get Track info
+						set iart to artist of current track
+					end if
+				end tell
+				if itrk is not equal to inme then -- If track has changed...
+					set inme to itrk
+					tell application (POSIX path of (path to me))
+						do shell script "terminal-notifier -subtitle \"" & inme & "\" -title \"iTunes - Now Playing\" -message \"By " & iart & "\" -group IT -execute \"open /Applications/iTunes.app\"" -- Display the notification
+					end tell
+				end if
 			end try
 		end if
 	end tell
