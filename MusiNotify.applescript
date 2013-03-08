@@ -1,46 +1,54 @@
-set vers to (do shell script "sw_vers -productVersion")
-set pte to (do shell script "echo " & vers & " | cut -d '.' -f 1-2")
-if pte is not equal to "10.8" then -- Check to make sure that the user is running OSX 10.8 or higher
-	display dialog "Sorry. This app requires OSX 10.8 or higher." buttons ("OK")
-	try
-		set the_pid to (do shell script "ps ax | grep " & (quoted form of (POSIX path of (path to me))) & " | grep -v grep | awk '{print $1}'")
-		if the_pid is not "" then do shell script ("kill -9 " & the_pid)
-	end try
-end if
+global snme
+global inme
 
-try
-	set preffile to (POSIX path of (path to me) & "Contents/Resources/pref.txt")
+on run
 	try
-		do shell script "touch " & preffile
-	end try
-	set pref to (do shell script "cat " & preffile) -- Read the preference file
-	
-	if pref = "" then
-		set ans to button returned of (display dialog "Would you like to set this app as a login item?" buttons {"No", "Yes"} default button 2 with title "MusiNotify")
-		if ans = "Yes" then
-			set reso to (POSIX path of (path to me))
-			tell application "System Events" to make login item at end with properties {path:reso, kind:application} -- Make application a login item
-			do shell script "echo 1 > " & preffile
-		else
-			do shell script "echo 0 > " & preffile
+		set vers to (do shell script "sw_vers -productVersion")
+		set pte to (do shell script "echo " & vers & " | cut -d '.' -f 1-2")
+		if pte is not equal to "10.8" then -- Check to make sure that the user is running OSX 10.8 or higher
+			display dialog "Sorry. This app requires OSX 10.8 or higher." buttons ("OK")
+			try
+				set the_pid to (do shell script "ps ax | grep " & (quoted form of (POSIX path of (path to me))) & " | grep -v grep | awk '{print $1}'")
+				if the_pid is not "" then do shell script ("kill -9 " & the_pid)
+			end try
 		end if
 		
-		set infile to (POSIX path of (path to me) & "Contents/Info.plist")
-		set newfile to (POSIX path of (path to me) & "Contents/Resources/Info.plist")
-		do shell script "mv " & newfile & " " & infile -- Make the Dock icon hidden
-		display dialog "Please restart MusiNotify to finish installation." buttons ("Quit") default button 1 with title "MusiNotify"
 		try
-			set the_pid to (do shell script "ps ax | grep " & (quoted form of (POSIX path of (path to me))) & " | grep -v grep | awk '{print $1}'")
-			if the_pid is not "" then do shell script ("kill -9 " & the_pid)
+			set preffile to (POSIX path of (path to me) & "Contents/Resources/pref.txt")
+			try
+				do shell script "touch " & preffile
+			end try
+			set pref to (do shell script "cat " & preffile) -- Read the preference file
+			
+			if pref = "" then
+				set ans to button returned of (display dialog "Would you like to set this app as a login item?" buttons {"No", "Yes"} default button 2 with title "MusiNotify")
+				if ans = "Yes" then
+					set reso to (POSIX path of (path to me))
+					tell application "System Events" to make login item at end with properties {path:reso, kind:application} -- Make application a login item
+					do shell script "echo 1 > " & preffile
+				else
+					do shell script "echo 0 > " & preffile
+				end if
+				
+				set infile to (POSIX path of (path to me) & "Contents/Info.plist")
+				set newfile to (POSIX path of (path to me) & "Contents/Resources/Info.plist")
+				do shell script "mv " & newfile & " " & infile -- Make the Dock icon hidden
+				display dialog "Please restart MusiNotify to finish installation." buttons ("Quit") default button 1 with title "MusiNotify"
+				try
+					set the_pid to (do shell script "ps ax | grep " & (quoted form of (POSIX path of (path to me))) & " | grep -v grep | awk '{print $1}'")
+					if the_pid is not "" then do shell script ("kill -9 " & the_pid)
+				end try
+			end if
 		end try
-	end if
-end try
-set snme to ""
-set inme to ""
-set NPIT to (POSIX path of (path to me)) & "Contents/Resources/NPIT.app/Contents/MacOS/NPIT"
-set NPSP to (POSIX path of (path to me)) & "Contents/Resources/NPSP.app/Contents/MacOS/NPSP"
-repeat
+	end try
+	set snme to ""
+	set inme to ""
+end run
+
+on idle
 	delay 0.1
+	set NPIT to (POSIX path of (path to me)) & "Contents/Resources/NPIT.app/Contents/MacOS/NPIT"
+	set NPSP to (POSIX path of (path to me)) & "Contents/Resources/NPSP.app/Contents/MacOS/NPSP"
 	tell application "System Events"
 		set applist to (name of every process)
 		if applist contains "Spotify" then -- Check to see if Spotify is running
@@ -60,7 +68,7 @@ repeat
 				end if
 			end try
 		end if
-		if applist contains "iTunes" then -- Check to see if Spotify is running
+		if applist contains "iTunes" then -- Check to see if iTunes is running
 			try
 				tell application "iTunes"
 					if current track exists then
@@ -77,4 +85,8 @@ repeat
 			end try
 		end if
 	end tell
-end repeat
+	return 0.1
+end idle
+on quit
+	continue quit
+end quit
