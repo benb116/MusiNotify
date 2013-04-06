@@ -44,8 +44,8 @@ on run
 	set inme to ""
 	set x to 0
 	set y to 0
-	set NPIT to (POSIX path of (path to me)) & "Contents/Resources/NPIT.app/Contents/MacOS/NPIT"
-	set NPSP to (POSIX path of (path to me)) & "Contents/Resources/NPSP.app/Contents/MacOS/NPSP"
+	set NPIT to (POSIX path of (path to me)) & "Contents/Resources/ITN.app/Contents/MacOS/ITN"
+	set NPSP to (POSIX path of (path to me)) & "Contents/Resources/SPN.app/Contents/MacOS/SPN"
 end run
 
 on idle
@@ -65,20 +65,16 @@ on idle
 						set x to (x + 1)
 						if x is greater than 3 then set x to x - 3
 						set xid to x as text
-						tell application (POSIX path of (path to me))
-							do shell script NPSP & " -title \"" & snme & "\" -subtitle \"By " & sart & "\" -message \"\" -group SP" & xid & " -execute 'open /Applications/Spotify.app'" -- Display the notification
-						end tell
-					end if
-				else
-					if strk is not equal to snme then -- If track has changed...
-						set snme to strk
-						do shell script NPSP & " -title \"Support MusiNotify's development\" -subtitle \"Click here to donate via PayPal\" -message \"\" -group AD -open https://github.com/benb116/MusiNotify -group SPAD" -- Display the notification
-						try
-							do shell script NPSP & " -remove SPAD"
-						end try
+						do shell script NPSP & " -title \"" & snme & "\" -subtitle \"By " & sart & "\" -message \"\" -group SP" & xid & " -execute 'open /Applications/Spotify.app'" -- Display the notification
 					end if
 				end if
 			end try
+		else
+			tell application "Finder"
+				do shell script NPSP & " -remove SP1"
+				do shell script NPSP & " -remove SP2"
+				do shell script NPSP & " -remove SP3"
+			end tell
 		end if
 		if applist contains "iTunes" then -- Check to see if iTunes is running
 			try
@@ -98,6 +94,12 @@ on idle
 					end tell
 				end if
 			end try
+		else
+			tell application "Finder"
+				do shell script NPIT & " -remove IT1"
+				do shell script NPIT & " -remove IT2"
+				do shell script NPIT & " -remove IT3"
+			end tell
 		end if
 	end tell
 	return 0.1
