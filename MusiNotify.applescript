@@ -44,8 +44,8 @@ on run
 	set inme to ""
 	set x to 0
 	set y to 0
-	set NPIT to (POSIX path of (path to me)) & "Contents/Resources/ITN.app/Contents/MacOS/ITN"
-	set NPSP to (POSIX path of (path to me)) & "Contents/Resources/SPN.app/Contents/MacOS/SPN"
+	set NPIT to (POSIX path of (path to me)) & "Contents/Resources/iTunes.app/Contents/MacOS/iTunes"
+	set NPSP to (POSIX path of (path to me)) & "Contents/Resources/Spotify.app/Contents/MacOS/Spotify"
 end run
 
 on idle
