@@ -20,7 +20,8 @@ try
 		end try
 		set pref to (do shell script "cat " & preffile)
 		if pref = "" then
-			-- If first run...
+			
+			-- If first run...	
 			set ans to button returned of (display dialog "Would you like to set this app as a login item?" buttons {"No", "Yes"} default button 2 with title "MusiNotify")
 			if ans = "Yes" then
 				-- Make the app a login item
@@ -31,9 +32,12 @@ try
 			else
 				do shell script "echo login:0 > " & preffile
 			end if
+			
 			-- Set preset settings
 			do shell script "echo DispArt:1 >> " & preffile
 			do shell script "echo DispAlb:0 >> " & preffile
+			do shell script "echo NumOfNot:3 >> " & preffile
+			
 			-- Hide the Dock icon
 			set infile to (POSIX path of (path to me) & "Contents/Info.plist")
 			set pars to paragraphs of (do shell script "cat " & infile)
@@ -49,6 +53,7 @@ try
 			do shell script "echo " & quoted form of (item -2 of pars) & " >> " & infile
 			do shell script "echo " & quoted form of (item -1 of pars) & " >> " & infile
 			display dialog "Please restart MusiNotify to finish installation." buttons ("Quit") default button 1 with title "MusiNotify"
+			
 			-- Quit
 			try
 				set the_pid to (do shell script "ps ax | grep " & (quoted form of (POSIX path of (path to me))) & " | grep -v grep | awk '{print $1}'")
@@ -57,14 +62,10 @@ try
 		end if
 	end try
 end try
+
 -- Set up variables
 set snme to ""
 set inme to ""
-try
-	set x to 0
-on error
-	display dialog "Initial Setup"
-end try
 set x to 0
 set y to 0
 set NPIT to (POSIX path of (path to me)) & "Contents/Resources/ITN.app/Contents/MacOS/ITN"
@@ -75,9 +76,12 @@ on idle
 	-- Read preferences
 	set DispArt to (do shell script "cat " & preffile & " | grep 'DispArt' | cut -d ':' -f 2")
 	set DispAlb to (do shell script "cat " & preffile & " | grep 'DispAlb' | cut -d ':' -f 2")
+	set NumOfNot to (do shell script "cat " & preffile & " | grep 'NumOfNot' | cut -d ':' -f 2")
+	
 	tell application "System Events"
 		set applist to (name of every process) -- See which apps are running
 		if applist contains "Spotify" then
+			
 			try
 				tell application "Spotify"
 					-- Get Track info
@@ -93,27 +97,33 @@ on idle
 						set salb to ""
 					end if
 					set pop to popularity of current track
+					set dur to duration of current track
 				end tell
-				if pop is not 0 then -- If the track is not an ad...
+				if pop is not 0 or dur is greater than 40 then -- If the track is not an ad...
 					if strk is not equal to snme then -- If track has changed...
-						-- Determine the notification to replace
 						set snme to strk
+						-- Determine the notification to replace
 						set x to (x + 1)
-						if x is greater than 3 then set x to x - 3
+						if x is greater than NumOfNot then set x to x - NumOfNot
 						set xid to x as text
-						do shell script NPSP & " -title \"" & snme & "\" -subtitle \"" & sart & "\" -message \"" & salb & "\" -group SP" & xid & " -execute 'open /Applications/Spotify.app'" -- Display the notification
+						do shell script NPSP & " -title " & (quoted form of snme) & " -subtitle " & (quoted form of sart) & " -message " & (quoted form of salb) & " -group SP" & xid & " -execute 'open /Applications/Spotify.app'" -- Display the notification
 					end if
 				end if
 			end try
 		else
 			tell application "Finder"
 				-- Remove previous notifications
-				do shell script NPSP & " -remove SP1"
-				do shell script NPSP & " -remove SP2"
-				do shell script NPSP & " -remove SP3"
+				repeat with n from 1 to NumOfNot
+					try
+						do shell script NPSP & " -remove SP" & n
+					end try
+				end repeat
 			end tell
+			set snme to ""
 		end if
+		
 		if applist contains "iTunes" then
+			
 			try
 				tell application "iTunes"
 					-- Get Track info
@@ -133,24 +143,28 @@ on idle
 					-- Determine the notification to replace
 					set inme to itrk
 					set y to (y + 1)
-					if y is greater than 3 then set y to y - 3
+					if y is greater than NumOfNot then set y to y - NumOfNot
 					set yid to y as text
 					tell application (POSIX path of (path to me))
-						do shell script NPIT & " -title \"" & inme & "\" -subtitle \"" & iart & "\" -message \"" & ialb & "\" -group IT" & yid & " -execute 'open /Applications/iTunes.app'" -- Display the notification
+						do shell script NPIT & " -title " & (quoted form of inme) & " -subtitle " & (quoted form of iart) & " -message " & (quoted form of ialb) & "-group IT" & yid & " -execute 'open /Applications/iTunes.app'" -- Display the notification
 					end tell
 				end if
 			end try
 		else
 			tell application "Finder"
 				-- Remove previous notifications
-				do shell script NPIT & " -remove IT1"
-				do shell script NPIT & " -remove IT2"
-				do shell script NPIT & " -remove IT3"
+				repeat with o from 1 to NumOfNot
+					try
+						do shell script NPIT & " -remove IT" & o
+					end try
+				end repeat
 			end tell
+			set inme to ""
 		end if
 	end tell
 	return 0.1
 end idle
+
 on quit
 	continue quit
 end quit
