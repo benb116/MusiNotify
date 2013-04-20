@@ -59,7 +59,7 @@ try
 			-- Install the preference script
 			try
 				set prefreso to (POSIX path of (path to me) & "Contents/Resources/MusiNotify-Preferences.scpt")
-				do shell script "cp " & prefreso & " ~/Library/Scripts/"
+				do shell script "cp " & prefreso & " ~/Library/Scripts/Applications/"
 			end try
 			
 			display dialog "Please restart MusiNotify to finish installation." buttons ("Quit") default button 1 with title "MusiNotify"
@@ -86,7 +86,7 @@ try
 	set prevtext to paragraphs of (do shell script "cat " & preffile)
 	do shell script "cat /dev/null >  " & preffile
 	repeat with p in prevtext
-		if p does not contain "/" then do shell script "echo " & p & " >> " & preffile
+		do shell script "echo " & p & " >> " & preffile
 	end repeat
 	do shell script "echo Apppath:" & (POSIX path of (path to me)) & " >> " & preffile
 end try
