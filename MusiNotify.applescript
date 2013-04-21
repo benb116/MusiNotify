@@ -164,9 +164,7 @@ on idle
 					set y to (y + 1)
 					if y is greater than NumOfNot then set y to y - NumOfNot
 					set yid to y as text
-					tell application (POSIX path of (path to me))
-						do shell script NPIT & " -title " & (quoted form of inme) & " -subtitle " & (quoted form of iart) & " -message " & (quoted form of ialb) & "-group IT" & yid & " -execute 'open /Applications/iTunes.app'" -- Display the notification
-					end tell
+					do shell script NPIT & " -title " & (quoted form of inme) & " -subtitle " & (quoted form of iart) & " -message " & (quoted form of ialb) & " -group IT" & yid & " -execute 'open /Applications/iTunes.app'" -- Display the notification
 				end if
 			end try
 		else
