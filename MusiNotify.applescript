@@ -105,6 +105,7 @@ on idle
 				tell application "Spotify"
 					-- Get Track info
 					set strk to name of current track
+					set isad to album of current track
 					if DispArt = "1" then
 						set sart to "By " & (artist of current track)
 					else
@@ -118,7 +119,7 @@ on idle
 					set pop to popularity of current track
 					set dur to duration of current track
 				end tell
-				if pop is not 0 or dur is greater than 40 then -- If the track is not an ad...
+				if isad does not contain "ad.doubleclick.net" then -- If the track is not an ad...
 					if strk is not equal to snme then -- If track has changed...
 						set snme to strk
 						-- Determine the notification to replace
