@@ -13,64 +13,40 @@ try
 	end if
 	
 	try
-		-- Read the preference file
-		try
-			do shell script "mkdir ~/Library/MusiNotify"
-		end try
-		try
-			do shell script "touch ~/Library/MusiNotify/pref.txt"
-		end try
-		set preffile to "~/Library/MusiNotify/pref.txt"
-		set pref to (do shell script "cat " & preffile)
-		if pref = "" then
-			
-			-- If first run...	
-			set ans to button returned of (display dialog "Would you like to set this app as a login item?" buttons {"No", "Yes"} default button 2 with title "MusiNotify")
-			if ans = "Yes" then
-				-- Make the app a login item
-				set reso to (POSIX path of (path to me))
-				tell application "System Events" to make login item at end with properties {path:reso, kind:application}
-				-- Record the choice
-				do shell script "echo login:1 > " & preffile
-			else
-				do shell script "echo login:0 > " & preffile
-			end if
-			
-			-- Set preset settings
-			do shell script "echo DispArt:1 >> " & preffile
-			do shell script "echo DispAlb:0 >> " & preffile
-			do shell script "echo NumOfNot:3 >> " & preffile
-			
-			-- Hide the Dock icon
-			set infile to (POSIX path of (path to me) & "Contents/Info.plist")
-			set pars to paragraphs of (do shell script "cat " & infile)
-			try
-				do shell script "rm " & infile
-			end try
-			do shell script "touch " & infile
-			repeat with a from 1 to ((count of pars) - 2)
-				do shell script "echo " & quoted form of (item a of pars) & " >> " & infile
-			end repeat
-			do shell script "echo '<key>NSUIElement</key>' >> " & infile
-			do shell script "echo '<string>1</string>' >> " & infile
-			do shell script "echo " & quoted form of (item -2 of pars) & " >> " & infile
-			do shell script "echo " & quoted form of (item -1 of pars) & " >> " & infile
-			
-			-- Install the preference script
-			try
-				set prefreso to (POSIX path of (path to me) & "Contents/Resources/MusiNotify-Preferences.scpt")
-				do shell script "cp " & prefreso & " ~/Library/Scripts/"
-			end try
-			
-			display dialog "Please restart MusiNotify to finish installation." buttons ("Quit") default button 1 with title "MusiNotify"
-			
-			-- Quit
-			try
-				set the_pid to (do shell script "ps ax | grep " & (quoted form of (POSIX path of (path to me))) & " | grep -v grep | awk '{print $1}'")
-				if the_pid is not "" then do shell script ("kill -9 " & the_pid)
-			end try
-		end if
+		set preffile to "com.BenB116.MusiNotify.plist"
+		set prefFilePath to "~/Library/Preferences/" & preffile
+		tell application "System Events"
+			set isPrefFileExists to false
+			if exists file prefFilePath then set isPrefFileExists to true
+		end tell
 	end try
+	if isPrefFileExists is false then
+		do shell script "touch ~/Library/Preferences/com.BenB116.MusiNotify.plist"
+		-- Set initial settings
+		do shell script "defaults write " & preffile & " 'login' '0'"
+		set ans to button returned of (display dialog "Would you like to set this app as a login item?" buttons {"No", "Yes"} default button 2 with title "MusiNotify")
+		if ans = "Yes" then do shell script "defaults write " & preffile & " 'login' '1'"
+		do shell script "defaults write " & preffile & " 'DispArt' '1'"
+		do shell script "defaults write " & preffile & " 'DispAlb' '0'"
+		do shell script "defaults write " & preffile & " 'NumOfNot' '3'"
+		
+		-- Hide the Dock icon
+		set infile to (POSIX path of (path to me) & "Contents/Info.plist")
+		do shell script "defaults write " & infile & " 'NSUIElement' '1'"
+		
+		-- Install the preference script
+		try
+			set prefreso to (POSIX path of (path to me) & "Contents/Resources/MusiNotify-Preferences.scpt")
+			do shell script "cp " & prefreso & " ~/Library/Scripts/"
+		end try
+		
+		display dialog "Please restart MusiNotify to finish installation." buttons ("Quit") default button 1 with title "MusiNotify"
+		-- Quit
+		try
+			set the_pid to (do shell script "ps ax | grep " & (quoted form of (POSIX path of (path to me))) & " | grep -v grep | awk '{print $1}'")
+			if the_pid is not "" then do shell script ("kill -9 " & the_pid)
+		end try
+	end if
 end try
 
 -- Set up variables
@@ -82,20 +58,14 @@ set NPIT to (POSIX path of (path to me)) & "Contents/Resources/ITN.app/Contents/
 set NPSP to (POSIX path of (path to me)) & "Contents/Resources/SPN.app/Contents/MacOS/SPN"
 -- Update app path in preffile
 try
-	set preffile to "~/Library/MusiNotify/pref.txt"
-	set prevtext to paragraphs of (do shell script "cat " & preffile)
-	do shell script "cat /dev/null >  " & preffile
-	repeat with p in prevtext
-		if p does not contain "/" then do shell script "echo " & p & " >> " & preffile
-	end repeat
-	do shell script "echo Apppath:" & (POSIX path of (path to me)) & " >> " & preffile
+	do shell script "defaults write " & preffile & " 'loginPath' '" & quoted form of (POSIX path of (path to me)) & "'"
 end try
 on idle
 	delay 0.1
 	-- Read preferences
-	set DispArt to (do shell script "cat " & preffile & " | grep 'DispArt' | cut -d ':' -f 2")
-	set DispAlb to (do shell script "cat " & preffile & " | grep 'DispAlb' | cut -d ':' -f 2")
-	set NumOfNot to (do shell script "cat " & preffile & " | grep 'NumOfNot' | cut -d ':' -f 2")
+	set DispArt to (do shell script "defaults read " & preffile & " 'DispArt'")
+	set DispAlb to (do shell script "defaults read " & preffile & " 'DispAlb'")
+	set NumOfNot to (do shell script "defaults read " & preffile & " 'NumOfNot'")
 	
 	tell application "System Events"
 		set applist to (name of every process) -- See which apps are running
@@ -106,20 +76,12 @@ on idle
 					-- Get Track info
 					set strk to name of current track
 					set isad to album of current track
-					if DispArt = "1" then
-						set sart to "By " & (artist of current track)
-					else
-						set sart to ""
-					end if
-					if DispAlb = "1" then
-						set salb to "On " & (album of current track)
-					else
-						set salb to ""
-					end if
-					set pop to popularity of current track
-					set dur to duration of current track
+					set sart to ""
+					if DispArt = "1" then set sart to "By " & (artist of current track)
+					set salb to ""
+					if DispAlb = "1" then set salb to "On " & (album of current track)
 				end tell
-				if isad does not contain "ad.doubleclick.net" then -- If the track is not an ad...
+				if isad does not contain "http://" and isad does not contain "spotify:" then -- If the track is not an ad...
 					if strk is not equal to snme then -- If track has changed...
 						set snme to strk
 						-- Determine the notification to replace
@@ -148,16 +110,10 @@ on idle
 				tell application "iTunes"
 					-- Get Track info
 					set itrk to name of current track
-					if DispArt = "1" then
-						set iart to "By " & (artist of current track)
-					else
-						set iart to ""
-					end if
-					if DispAlb = "1" then
-						set ialb to "On " & (album of current track)
-					else
-						set ialb to ""
-					end if
+					set iart to ""
+					if DispArt = "1" then set iart to "By " & (artist of current track)
+					set ialb to ""
+					if DispAlb = "1" then set ialb to "On " & (album of current track)
 				end tell
 				if itrk is not equal to inme then -- If track has changed...
 					-- Determine the notification to replace
