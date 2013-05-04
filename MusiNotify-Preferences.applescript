@@ -10,19 +10,18 @@ if q1 contains "Number of Notifications in Sidebar" then NumOfNot()
 display dialog "Preferences saved" buttons ("OK") default button 1 with title "MusiNotify Preferences"
 
 on changepref(pref, num)
-	set preffile to "com.BenB116.MusiNotify.plist"
 	do shell script "defaults write " & preffile & " '" & pref & "' '" & num & "'"
 end changepref
 
 on loginitem()
-	set logit to (do shell script "defaults read com.BenB116.Musinotify.plist 'login'")
+	set logit to (do shell script "defaults read " & preffile & " 'login'")
 	if logit = "1" then set loginenabled to "is"
 	if logit = "0" then set loginenabled to "is not"
 	set q2 to (display dialog "MusiNotify currently " & loginenabled & " a login item.
 
 Would you like MusiNotify to start on login?" with title "MusiNotify Preferences" buttons {"Cancel", "Yes", "No"})
 	if button returned of q2 is "Yes" and logit = "0" then
-		set apppath to (do shell script "cat " & preffile & " | grep 'Apppath' | cut -d ':' -f 2")
+		set apppath to (do shell script "defaults read " & preffile & " 'loginPath'")
 		tell application "System Events" to make login item at end with properties {path:apppath, kind:application}
 		changepref("login", "1")
 	else if button returned of q2 is "No" and logit = "1" then
@@ -32,7 +31,7 @@ Would you like MusiNotify to start on login?" with title "MusiNotify Preferences
 end loginitem
 
 on DispArt()
-	set Art to (do shell script "defaults read com.BenB116.Musinotify.plist 'DispArt'")
+	set Art to (do shell script "defaults read " & preffile & " 'DispArt'")
 	if Art = "1" then set artenabled to "displays"
 	if Art = "0" then set artenabled to "does not display"
 	set q3 to (display dialog "MusiNotify currently " & artenabled & " the artist in notifications.
@@ -46,7 +45,7 @@ Would you like MusiNotify to display the artist?" with title "MusiNotify Prefere
 end DispArt
 
 on DispAlb()
-	set Alb to (do shell script "defaults read com.BenB116.Musinotify.plist 'DispAlb'")
+	set Alb to (do shell script "defaults read " & preffile & " 'DispAlb'")
 	if Alb = "1" then set Albenabled to "displays"
 	if Alb = "0" then set Albenabled to "does not display"
 	set q4 to (display dialog "MusiNotify currently " & Albenabled & " the album in notifications.
@@ -60,7 +59,7 @@ Would you like MusiNotify to display the album?" with title "MusiNotify Preferen
 end DispAlb
 
 on NumOfNot()
-	set NumNot to (do shell script "defaults read com.BenB116.Musinotify.plist 'NumOfNot'") as string
+	set NumNot to (do shell script "defaults read " & preffile & " 'NumOfNot'") as string
 	repeat
 		set q5 to text returned of (display dialog "MusiNotify currently displays " & NumNot & " notifications in the sidebar." & return & return & "How many notifications would you like displayed in the sidebar?" default answer "" & NumNot & "" with title "MusiNotify Preferences")
 		try
