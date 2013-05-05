@@ -93,7 +93,7 @@ on idle
 				-- Remove previous notifications
 				repeat with n from 1 to NumOfNot
 					try
-						do shell script NPSP & " -remove SP" & n
+						do shell script quoted form of NPSP & " -remove SP" & n
 					end try
 				end repeat
 			end tell
@@ -128,7 +128,7 @@ on idle
 				-- Remove previous notifications
 				repeat with o from 1 to NumOfNot
 					try
-						do shell script NPIT & " -remove IT" & o
+						do shell script quoted form of NPIT & " -remove IT" & o
 					end try
 				end repeat
 			end tell
