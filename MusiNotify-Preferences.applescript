@@ -1,12 +1,14 @@
 global preffile
 set preffile to "com.BenB116.MusiNotify.plist"
 
-set q1 to (choose from list {"Login Item", "Display Artist Name", "Display Album Name", "Number of Notifications in Sidebar"} with prompt "Which preferences would you like to change?" with title "MusiNotify Preferences" with multiple selections allowed)
+set q1 to (choose from list {"Login Item", "Display Artist Name", "Display Album Name", "Number of Notifications in Sidebar", "Clear Notifications on Quit"} with prompt "Which preferences would you like to change?" with title "MusiNotify Preferences" with multiple selections allowed)
 
 if q1 contains "Login Item" then loginitem()
 if q1 contains "Display Artist Name" then DispArt()
 if q1 contains "Display Album Name" then DispAlb()
 if q1 contains "Number of Notifications in Sidebar" then NumOfNot()
+if q1 contains "Clear Notifications on Quit" then RemoveOnQuit()
+
 display dialog "Preferences saved" buttons ("OK") default button 1 with title "MusiNotify Preferences"
 
 on changepref(pref, num)
@@ -70,3 +72,15 @@ on NumOfNot()
 	set newnum to newnum as text
 	changepref("NumOfNot", newnum)
 end NumOfNot
+
+on RemoveOnQuit()
+	set removeon to (do shell script "defaults read " & preffile & " 'RemoveOnQuit'") as string
+	if removeon = "1" then set RemoveEnabled to "removes"
+	if removeon = "0" then set RemoveEnabled to "does not remove"
+	set q6 to button returned of (display dialog "MusiNotify currently " & RemoveEnabled & " notifications in the sidebar when iTunes or Spotify quit." & return & return & "Would you like the notifications to be cleared after quitting?" buttons {"Cancel", "Yes", "No"} with title "MusiNotify Preferences")
+	if q6 is "Yes" and removeon = "0" then
+		changepref("RemoveOnQuit", "1")
+	else if q6 is "No" and removeon = "1" then
+		changepref("RemoveOnQuit", "0")
+	end if
+end RemoveOnQuit
