@@ -1,4 +1,4 @@
-global snme, inme, x, y, NPIT, NPSP, preffile
+global snme, inme, x, y, NPIT, NPSP, preffile, thanked
 
 try
 	-- Check to make sure that the user is running OSX 10.8
@@ -15,7 +15,7 @@ try
 	-- Check if the preference file exists
 	try
 		set preffile to "com.BenB116.MusiNotify.plist"
-		set prefFilePath to "~/Library/Preferences/" & preffile
+		set prefFilePath to "/Library/Preferences/" & preffile
 		tell application "System Events"
 			set isPrefFileExists to false
 			if exists file prefFilePath then set isPrefFileExists to true
@@ -23,7 +23,7 @@ try
 	end try
 	
 	if isPrefFileExists is false then
-		do shell script "touch ~/Library/Preferences/com.BenB116.MusiNotify.plist"
+		do shell script "touch /Library/Preferences/com.BenB116.MusiNotify.plist"
 		-- Set initial settings
 		do shell script "defaults write " & preffile & " 'login' '0'"
 		set ans to button returned of (display dialog "Would you like to set this app as a login item?" buttons {"No", "Yes"} default button 2 with title "MusiNotify")
