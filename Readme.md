@@ -13,3 +13,5 @@ Mac OS X 10.8 or higher is required.
 ![image](http://cl.ly/N8vJ/Spotify%20Notification.png)
 
 ![image](http://cl.ly/O73L/Spotify%20With%20Album.png)
+
+![image](http://cl.ly/Oszm/Sidebar.png)
