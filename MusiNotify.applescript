@@ -15,7 +15,7 @@ try
 	-- Check if the preference file exists
 	try
 		set preffile to "com.BenB116.MusiNotify.plist"
-		set prefFilePath to "/Library/Preferences/" & preffile
+		set prefFilePath to "~/Library/Preferences/" & preffile
 		tell application "System Events"
 			set isPrefFileExists to false
 			if exists file prefFilePath then set isPrefFileExists to true
@@ -23,7 +23,7 @@ try
 	end try
 	
 	if isPrefFileExists is false then
-		do shell script "touch /Library/Preferences/com.BenB116.MusiNotify.plist"
+		do shell script "touch ~/Library/Preferences/com.BenB116.MusiNotify.plist"
 		-- Set initial settings
 		do shell script "defaults write " & preffile & " 'login' '0'"
 		set ans to button returned of (display dialog "Would you like to set this app as a login item?" buttons {"No", "Yes"} default button 2 with title "MusiNotify")
@@ -32,6 +32,7 @@ try
 		do shell script "defaults write " & preffile & " 'DispAlb' '0'"
 		do shell script "defaults write " & preffile & " 'NumOfNot' '3'"
 		do shell script "defaults write " & preffile & " 'RemoveOnQuit' '1'"
+		do shell script "defaults write " & preffile & " 'AppVersion' '4.2'"
 		
 		-- Install the preference script
 		try
@@ -55,6 +56,13 @@ try
 	try
 		do shell script "defaults write " & preffile & " 'loginPath' '" & quoted form of (POSIX path of (path to me)) & "'"
 	end try
+	set loginitem to (do shell script "defaults read " & preffile & " 'login'")
+	if loginitem = "1" then
+		try
+			set apppath to (do shell script "defaults read " & preffile & " 'loginPath'")
+			tell application "System Events" to make login item at end with properties {path:apppath, kind:application}
+		end try
+	end if
 end try
 
 on idle

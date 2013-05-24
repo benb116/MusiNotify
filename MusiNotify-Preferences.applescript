@@ -9,7 +9,7 @@ if q1 contains "Display Album Name" then DispAlb()
 if q1 contains "Number of Notifications in Sidebar" then NumOfNot()
 if q1 contains "Clear Notifications on Quit" then RemoveOnQuit()
 
-display dialog "Preferences saved" buttons ("OK") default button 1 with title "MusiNotify Preferences"
+display dialog "Preferences saved." buttons ("OK") default button 1 with title "MusiNotify Preferences"
 
 on changepref(pref, num)
 	do shell script "defaults write " & preffile & " '" & pref & "' '" & num & "'"
