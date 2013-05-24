@@ -12,7 +12,7 @@ MusiNotify checks ever .1 seconds to see if either iTunes or Spotify are running
 * Optionally display the artist and/or album
 * Change the number of notifications visible in the sidebar (the default is three)
 * Optionally clear notifications from the sidebar when iTunes or Spotify is quit.
-* Will not display a notification for audio ads in Spotify
+* Will not display notifications for audio ads in Spotify
 
 <br>
 
