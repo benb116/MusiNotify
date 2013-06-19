@@ -6,7 +6,7 @@ This is a plugin for Mac OS X 10.8 and up. It displays a notification using two 
 Mac OS X 10.8 or higher is required.
 <br>
 ##How does it work?
-MusiNotify checks ever .1 seconds to see if either iTunes or Spotify are running. If either is, MusiNotify will get the name, artist, and album of the current track. If the track changes, MusiNotify will display a notification with the app's icon.
+MusiNotify checks every .2 seconds to see if either iTunes or Spotify are running. If either is, MusiNotify will get the name, artist, and album of the current track. If the track changes, MusiNotify will display a notification with the app's icon.
 
 ###Current Features
 * Optionally display the artist and/or album
