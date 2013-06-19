@@ -1,4 +1,3 @@
-
 global DispArt, DispAlb, NumOfNot, RemoveOnQuit, snme, inme, x, y, NPSP, NPIT, thanked, preffile, spotgroups, Itungroups
 
 try
@@ -84,7 +83,7 @@ on FirstPrefSetup()
 		do shell script "defaults write " & preffile & " 'DispAlb' '0'"
 		do shell script "defaults write " & preffile & " 'NumOfNot' '3'"
 		do shell script "defaults write " & preffile & " 'RemoveOnQuit' '1'"
-		do shell script "defaults write " & preffile & " 'AppVersion' '4.3'"
+		do shell script "defaults write " & preffile & " 'AppVersion' '4.3.1'"
 		
 		-- Install the preference script
 		try
@@ -237,7 +236,7 @@ on ItunDet()
 	else if (count of Itungroups) > NumOfNot as integer then
 		repeat with b from NumOfNot + 1 to (count of Itungroups)
 			log b
-			Removeitunify((item b of Itungroups))
+			RemoveiTunes((item b of Itungroups))
 		end repeat
 		set Itungroups to (items 1 thru NumOfNot of Itungroups)
 		set y to last item of Itungroups
