@@ -1,4 +1,4 @@
-global DispArt, DispAlb, NumOfNot, RemoveOnQuit, snme, inme, x, y, NPSP, NPIT, thanked, preffile, spotgroups, Itungroups
+global DispArt, DispAlb, NumOfNot, RemoveOnQuit, sid, iid, x, y, NPSP, NPIT, thanked, preffile, spotgroups, Itungroups
 
 try
 	CheckSystemVersion() -- Check to make sure that the user is running OSX 10.8
@@ -8,7 +8,7 @@ try
 	
 	InitialSetup() -- Set up variables
 end try
-log "Checking..."
+
 repeat
 	delay 0.2
 	try
@@ -17,21 +17,22 @@ repeat
 		if applist contains "Spotify" then
 			CheckSpotify() -- Check if the song has changed
 		else
-			if RemoveOnQuit = "1" then
+			if RemoveOnQuit = "1" then -- If app isn't running and RemoveOnQuit is set to 1 then...
+				log spotgroups
 				repeat with a in spotgroups
 					RemoveSpotify(a) -- Remove notifications
 				end repeat
-				set spotgroups to {}
+				set spotgroups to {} -- Clear
 			end if
 		end if
 		if applist contains "iTunes" then
 			CheckiTunes() -- Check if the song has changed
 		else
-			if RemoveOnQuit = "1" then
+			if RemoveOnQuit = "1" then -- If app isn't running and RemoveOnQuit is set to 1 then...
 				repeat with b in Itungroups
 					RemoveiTunes(b) -- Remove notifications
 				end repeat
-				set Itungroups to {}
+				set Itungroups to {} -- Clear
 			end if
 		end if
 	end try
@@ -71,19 +72,20 @@ end CheckPrefFile
 
 on FirstPrefSetup()
 	try
-		do shell script "touch ~/Library/Preferences/com.BenB116.MusiNotify.plist"
+		do shell script "touch ~/Library/Preferences/" & preffile
+		
 		-- Set initial settings
 		do shell script "defaults write " & preffile & " 'login' '0'"
 		set ans to button returned of (display dialog "Would you like to set this app as a login item?" buttons {"No", "Yes"} default button 2 with title "MusiNotify")
 		if ans = "Yes" then
 			do shell script "defaults write " & preffile & " 'login' '1'"
-			AddToLogin((POSIX path of (path to me)))
+			tell application "System Events" to make login item at end with properties {path:(POSIX path of (path to me)), kind:application}
 		end if
 		do shell script "defaults write " & preffile & " 'DispArt' '1'"
 		do shell script "defaults write " & preffile & " 'DispAlb' '0'"
 		do shell script "defaults write " & preffile & " 'NumOfNot' '3'"
 		do shell script "defaults write " & preffile & " 'RemoveOnQuit' '1'"
-		do shell script "defaults write " & preffile & " 'AppVersion' '4.3.1'"
+		do shell script "defaults write " & preffile & " 'AppVersion' '4.3.2'"
 		
 		-- Install the preference script
 		try
@@ -93,17 +95,13 @@ on FirstPrefSetup()
 	end try
 end FirstPrefSetup
 
-on AddToLogin(apppath)
-	tell application "System Events" to make login item at end with properties {path:apppath, kind:application}
-end AddToLogin
-
 on InitialSetup()
 	try
 		do shell script "defaults write " & preffile & " 'loginPath' '" & (POSIX path of (path to me)) & "'"
 	end try
 	try
-		set snme to ""
-		set inme to ""
+		set sid to ""
+		set iid to ""
 		set x to 0
 		set y to 0
 		set spotgroups to {}
@@ -127,30 +125,32 @@ on CheckSpotify()
 			set strk to name of current track
 			set tart to artist of current track
 			set talb to album of current track
+			set tid to id of current track
 		end tell
 		if talb does not contain "http" and talb does not contain "spotify:" then -- If the track is not an ad...
 			set thanked to false
-			if strk is not equal to snme then -- If track has changed...
+			log tid
+			if tid is not equal to sid then -- If track has changed...
 				try
 					set sart to " "
 					if DispArt = "1" and tart is not equal to "" then set sart to "By " & tart
 					set salb to " "
 					if DispAlb = "1" and talb is not equal to "" then set salb to "On " & talb
 					
-					set theid to SpotDet()
+					set theid to SpotDet() -- Get the ID
 					set xid to "-group SP" & theid as text
 					
 					log "Notification - " & strk
 					do shell script quoted form of NPSP & " -title " & (quoted form of strk) & " -subtitle " & (quoted form of sart) & " -message " & (quoted form of salb) & " " & xid & " -execute 'open /Applications/Spotify.app'" -- Display the notification
 					log "Checking…"
-					set snme to strk
+					set sid to tid
 				end try
 			end if
 			
 		else
 			try
 				if thanked is false then
-					do shell script quoted form of NPSP & " -title " & (quoted form of "Thanks for using MusiNotify!") & " -subtitle " & (quoted form of "You're awesome!") & " -message \"\" -group TH"
+					do shell script quoted form of NPSP & " -title " & (quoted form of "Thanks for using MusiNotify!") & " -subtitle " & (quoted form of "You're awesome!") & " -message \"\" -group TH -open " & quoted form of ("https://github.com/benb116/MusiNotify")
 					set thanked to true
 					do shell script quoted form of NPSP & " -remove TH"
 				end if
@@ -161,23 +161,20 @@ on CheckSpotify()
 end CheckSpotify
 
 on SpotDet()
-	log spotgroups
-	if (count of spotgroups) = NumOfNot as integer then
+	if (count of spotgroups) = NumOfNot as integer then -- If full
 		set x to last item of spotgroups
 		try
 			set spotgroups to (items 1 thru -2 of spotgroups)
 		on error
 			set spotgroups to {}
 		end try
-		log x
-	else if (count of spotgroups) < NumOfNot as integer then
+	else if (count of spotgroups) < NumOfNot as integer then -- If not full
 		repeat
 			set x to x + 1
 			if spotgroups does not contain x then exit repeat
 		end repeat
-	else if (count of spotgroups) > NumOfNot as integer then
+	else if (count of spotgroups) > NumOfNot as integer then -- If over-filled
 		repeat with a from NumOfNot + 1 to (count of spotgroups)
-			log a
 			RemoveSpotify((item a of spotgroups))
 		end repeat
 		set spotgroups to (items 1 thru NumOfNot of spotgroups)
@@ -189,7 +186,6 @@ on SpotDet()
 		end try
 	end if
 	set beginning of spotgroups to x
-	log spotgroups
 	return (first item of spotgroups) as integer
 end SpotDet
 
@@ -200,26 +196,28 @@ on CheckiTunes()
 			set itrk to name of current track
 			set tart to artist of current track
 			set talb to album of current track
+			set tid to id of current track
 		end tell
 		
-		if itrk is not equal to inme then -- If track has changed...
+		if tid is not equal to iid then -- If track has changed...
 			try
 				set iart to " "
 				if DispArt = "1" and tart is not equal to "" then set iart to "By " & tart
 				set ialb to " "
 				if DispAlb = "1" and talb is not equal to "" then set ialb to "On " & talb
 				
-				set theid to ItunDet()
+				set theid to ItunDet() -- Get the ID
 				set yid to "-group IT" & theid as text
 				
 				do shell script quoted form of NPIT & " -title " & (quoted form of itrk) & " -subtitle " & (quoted form of iart) & " -message " & (quoted form of ialb) & " " & yid & " -execute 'open /Applications/iTunes.app'" -- Display the notification
-				set inme to itrk
+				set iid to tid
 			end try
 		end if
 	end try
 end CheckiTunes
 
 on ItunDet()
+	-- Same as SpotDet(), converted to iTunes
 	if (count of Itungroups) = NumOfNot as integer then
 		set y to last item of Itungroups
 		try
