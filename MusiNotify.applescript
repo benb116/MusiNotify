@@ -39,15 +39,20 @@ repeat
 end repeat
 
 on CheckSystemVersion()
-	set vers to (do shell script "sw_vers -productVersion")
-	set pte to (do shell script "echo " & vers & " | cut -d '.' -f 1-2")
-	if pte is not equal to "10.8" then
-		display dialog "Sorry. This app requires OSX 10.8+" buttons ("OK")
-		try
-			set the_pid to (do shell script "ps ax | grep " & (quoted form of (POSIX path of (path to me))) & " | grep -v grep | awk '{print $1}'")
-			if the_pid is not "" then do shell script ("kill -9 " & the_pid)
-		end try
-	end if
+	try
+		set vers to (do shell script "sw_vers -productVersion")
+		set pte to (do shell script "echo " & vers & " | cut -d '.' -f 1-2")
+		if pte is not equal to "10.8" then
+			display dialog "Sorry. This app requires OSX 10.8+" buttons ("OK")
+			try
+				set the_pid to (do shell script "ps ax | grep " & (quoted form of (POSIX path of (path to me))) & " | grep -v grep | awk '{print $1}'")
+				if the_pid is not "" then do shell script ("kill -9 " & the_pid)
+			end try
+		end if
+	on error msg
+		display dialog "CheckSystemVersion - " & msg with title "Error - MusiNotify"
+		return
+	end try
 end CheckSystemVersion
 
 on CheckPrefFile()
@@ -67,6 +72,9 @@ on CheckPrefFile()
 				log "Trying for system events"
 			end try
 		end repeat
+	on error msg
+		display dialog "CheckPrefFile - " & msg with title "Error - MusiNotify"
+		return
 	end try
 end CheckPrefFile
 
@@ -79,19 +87,30 @@ on FirstPrefSetup()
 		set ans to button returned of (display dialog "Would you like to set this app as a login item?" buttons {"No", "Yes"} default button 2 with title "MusiNotify")
 		if ans = "Yes" then
 			do shell script "defaults write " & preffile & " 'login' '1'"
-			tell application "System Events" to make login item at end with properties {path:(POSIX path of (path to me)), kind:application}
+			set mypath to (POSIX path of (path to me))
+			tell application "System Events" to make login item at end with properties {path:mypath, kind:application}
 		end if
 		do shell script "defaults write " & preffile & " 'DispArt' '1'"
 		do shell script "defaults write " & preffile & " 'DispAlb' '0'"
 		do shell script "defaults write " & preffile & " 'NumOfNot' '3'"
 		do shell script "defaults write " & preffile & " 'RemoveOnQuit' '1'"
-		do shell script "defaults write " & preffile & " 'AppVersion' '4.3.2'"
+		do shell script "defaults write " & preffile & " 'AppVersion' '4.3.3'"
 		
 		-- Install the preference script
 		try
 			set prefreso to (POSIX path of (path to me) & "Contents/Resources/MusiNotify-Preferences.scpt")
 			do shell script "cp " & prefreso & " ~/Library/Scripts/"
 		end try
+		try
+			do shell script quoted form of ((POSIX path of (path to me)) & "Contents/Resources/MusiNotify - iTunes.app/Contents/MacOS/MusiNotify - iTunes")
+		end try
+		try
+			do shell script quoted form of ((POSIX path of (path to me)) & "Contents/Resources/MusiNotify - Spotify.app/Contents/MacOS/MusiNotify - Spotify")
+		end try
+		
+	on error msg
+		display dialog "FirstPrefSetup - " & msg with title "Error - MusiNotify"
+		return
 	end try
 end FirstPrefSetup
 
@@ -106,16 +125,24 @@ on InitialSetup()
 		set y to 0
 		set spotgroups to {}
 		set Itungroups to {}
-		set NPIT to (POSIX path of (path to me)) & "Contents/Resources/MusiNotify - iTunes.app/Contents/MacOS/MusiNotify - iTunes"
-		set NPSP to (POSIX path of (path to me)) & "Contents/Resources/MusiNotify - Spotify.app/Contents/MacOS/MusiNotify - Spotify"
+		set NPIT to (POSIX path of (path to me)) & "/Contents/Resources/MusiNotify - iTunes.app/Contents/MacOS/MusiNotify - iTunes"
+		set NPSP to (POSIX path of (path to me)) & "/Contents/Resources/MusiNotify - Spotify.app/Contents/MacOS/MusiNotify - Spotify"
+	on error msg
+		display dialog "InitialSetup - " & msg with title "Error - MusiNotify"
+		return
 	end try
 end InitialSetup
 
 on ReadPrefs()
-	set DispArt to (do shell script "defaults read " & preffile & " 'DispArt'")
-	set DispAlb to (do shell script "defaults read " & preffile & " 'DispAlb'")
-	set NumOfNot to (do shell script "defaults read " & preffile & " 'NumOfNot'")
-	set RemoveOnQuit to (do shell script "defaults read " & preffile & " 'RemoveOnQuit'")
+	try
+		set DispArt to (do shell script "defaults read " & preffile & " 'DispArt'")
+		set DispAlb to (do shell script "defaults read " & preffile & " 'DispAlb'")
+		set NumOfNot to (do shell script "defaults read " & preffile & " 'NumOfNot'")
+		set RemoveOnQuit to (do shell script "defaults read " & preffile & " 'RemoveOnQuit'")
+	on error msg
+		display dialog "ReadPrefs - " & msg with title "Error - MusiNotify"
+		return
+	end try
 end ReadPrefs
 
 on CheckSpotify()
@@ -156,37 +183,41 @@ on CheckSpotify()
 				end if
 			end try
 		end if
-		
 	end try
 end CheckSpotify
 
 on SpotDet()
-	if (count of spotgroups) = NumOfNot as integer then -- If full
-		set x to last item of spotgroups
-		try
-			set spotgroups to (items 1 thru -2 of spotgroups)
-		on error
-			set spotgroups to {}
-		end try
-	else if (count of spotgroups) < NumOfNot as integer then -- If not full
-		repeat
-			set x to x + 1
-			if spotgroups does not contain x then exit repeat
-		end repeat
-	else if (count of spotgroups) > NumOfNot as integer then -- If over-filled
-		repeat with a from NumOfNot + 1 to (count of spotgroups)
-			RemoveSpotify((item a of spotgroups))
-		end repeat
-		set spotgroups to (items 1 thru NumOfNot of spotgroups)
-		set x to last item of spotgroups
-		try
-			set spotgroups to (items 1 thru -2 of spotgroups)
-		on error
-			set spotgroups to {}
-		end try
-	end if
-	set beginning of spotgroups to x
-	return (first item of spotgroups) as integer
+	try
+		if (count of spotgroups) = NumOfNot as integer then -- If full
+			set x to last item of spotgroups
+			try
+				set spotgroups to (items 1 thru -2 of spotgroups)
+			on error
+				set spotgroups to {}
+			end try
+		else if (count of spotgroups) < NumOfNot as integer then -- If not full
+			repeat
+				set x to x + 1
+				if spotgroups does not contain x then exit repeat
+			end repeat
+		else if (count of spotgroups) > NumOfNot as integer then -- If over-filled
+			repeat with a from NumOfNot + 1 to (count of spotgroups)
+				RemoveSpotify((item a of spotgroups))
+			end repeat
+			set spotgroups to (items 1 thru NumOfNot of spotgroups)
+			set x to last item of spotgroups
+			try
+				set spotgroups to (items 1 thru -2 of spotgroups)
+			on error
+				set spotgroups to {}
+			end try
+		end if
+		set beginning of spotgroups to x
+		return (first item of spotgroups) as integer
+	on error msg
+		display dialog "SpotDet - " & msg with title "Error - MusiNotify"
+		return
+	end try
 end SpotDet
 
 on CheckiTunes()
@@ -217,46 +248,61 @@ on CheckiTunes()
 end CheckiTunes
 
 on ItunDet()
-	-- Same as SpotDet(), converted to iTunes
-	if (count of Itungroups) = NumOfNot as integer then
-		set y to last item of Itungroups
-		try
-			set Itungroups to (items 1 thru -2 of Itungroups)
-		on error
-			set Itungroups to {}
-		end try
-		log y
-	else if (count of Itungroups) < NumOfNot as integer then
-		repeat
-			set y to y + 1
-			if Itungroups does not contain y then exit repeat
-		end repeat
-	else if (count of Itungroups) > NumOfNot as integer then
-		repeat with b from NumOfNot + 1 to (count of Itungroups)
-			log b
-			RemoveiTunes((item b of Itungroups))
-		end repeat
-		set Itungroups to (items 1 thru NumOfNot of Itungroups)
-		set y to last item of Itungroups
-		try
-			set Itungroups to (items 1 thru -2 of Itungroups)
-		on error
-			set Itungroups to {}
-		end try
-	end if
-	set beginning of Itungroups to y
-	log Itungroups
-	return (first item of Itungroups) as integer
+	try
+		-- Same as SpotDet(), converted to iTunes
+		if (count of Itungroups) = NumOfNot as integer then
+			set y to last item of Itungroups
+			try
+				set Itungroups to (items 1 thru -2 of Itungroups)
+			on error
+				set Itungroups to {}
+			end try
+			log y
+		else if (count of Itungroups) < NumOfNot as integer then
+			repeat
+				set y to y + 1
+				if Itungroups does not contain y then exit repeat
+			end repeat
+		else if (count of Itungroups) > NumOfNot as integer then
+			repeat with b from NumOfNot + 1 to (count of Itungroups)
+				log b
+				RemoveiTunes((item b of Itungroups))
+			end repeat
+			set Itungroups to (items 1 thru NumOfNot of Itungroups)
+			set y to last item of Itungroups
+			try
+				set Itungroups to (items 1 thru -2 of Itungroups)
+			on error
+				set Itungroups to {}
+			end try
+		end if
+		set beginning of Itungroups to y
+		log Itungroups
+		return (first item of Itungroups) as integer
+	on error msg
+		display dialog "iTunDet - " & msg with title "Error - MusiNotify"
+		return
+	end try
 end ItunDet
 
 on RemoveSpotify(a)
-	if (count of spotgroups) ­ 0 then
-		do shell script quoted form of NPSP & " -remove SP" & a
-	end if
+	try
+		if (count of spotgroups) ­ 0 then
+			do shell script quoted form of NPSP & " -remove SP" & a
+		end if
+	on error msg
+		display dialog "RemoveSpotify - " & msg with title "Error - MusiNotify"
+		return
+	end try
 end RemoveSpotify
 
 on RemoveiTunes(b)
-	if (count of Itungroups) ­ 0 then
-		do shell script quoted form of NPIT & " -remove IT" & b
-	end if
+	try
+		if (count of Itungroups) ­ 0 then
+			do shell script quoted form of NPIT & " -remove IT" & b
+		end if
+	on error msg
+		display dialog "RemoveiTunes - " & msg with title "Error - MusiNotify"
+		return
+	end try
 end RemoveiTunes
