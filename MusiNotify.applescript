@@ -1,8 +1,11 @@
-global DispArt, DispAlb, NumOfNot, RemoveOnQuit, sid, iid, x, y, NPSP, NPIT, thanked, preffile, spotgroups, Itungroups
+global DispArt, DispAlb, NumOfNot, RemoveOnQuit, sid, iid, x, y, NPSP, NPIT, thanked, preffile, spotgroups, Itungroups, CurrentAppVersion
 
 try
 	CheckSystemVersion() -- Check to make sure that the user is running OSX 10.8
 	set preffile to "com.BenB116.MusiNotify.plist"
+	set CurrentAppVersion to "4.4.0"
+	
+	UpdateCheck()
 	
 	if not CheckPrefFile() then FirstPrefSetup() -- If the preference fle doesn't exist, then make one and do a first-run setup
 	
@@ -78,6 +81,54 @@ on CheckPrefFile()
 	end try
 end CheckPrefFile
 
+on UpdateCheck()
+	set preffile to "com.BenB116.MusiNotify.plist"
+	set CurrentAppVersion to do shell script "defaults read " & preffile & " 'AppVersion'"
+	set currentpath to do shell script "dirname " & (POSIX path of "/Applications/MusiNotify.app")
+	set currentpath to currentpath & "/"
+	
+	set raw to (do shell script "curl benbern.dyndns.info/MusiNotify/Version.txt")
+	set LatestVersion to first paragraph of raw
+	
+	if LatestVersion ≠ CurrentAppVersion then
+		set Featlist to ""
+		try
+			set NewFeats to paragraphs 2 thru -1 of raw
+			repeat with feat in NewFeats
+				set Featlist to Featlist & feat & return
+			end repeat
+		on error
+			set Featlist to ""
+		end try
+		
+		set UpdateQ to button returned of (display dialog "MusiNotify " & LatestVersion & " is available for update." & return & return & Featlist with title "MusiNotify - Update" buttons {"Don't Update", "Update"} default button 2)
+		if UpdateQ = "Update" then
+			try
+				do shell script "cd ~/Library; curl -O https://raw.github.com/benb116/MusiNotify/master/MusiNotify.app.zip; unzip MusiNotify.app.zip"
+				do shell script "cp -rf ~/Library/MusiNotify.app " & currentpath
+				try
+					do shell script "rm ~/Library/MusiNotify.app.zip; rm -rf ~/Library/__MACOSX; rm -rf ~/Library/MusiNotify.app"
+				end try
+				do shell script "defaults write " & preffile & " 'AppVersion' '" & LatestVersion & "'"
+				display dialog "Update complete. Restart MusiNotify for the changes to take effect." buttons ("Restart") default button 1
+				
+				set the_pid to (do shell script "ps ax | grep " & currentpath & "MusiNotify.app | grep -v grep | awk '{print $1}'")
+				if the_pid is not "" then do shell script ("kill -9 " & the_pid & "; open " & (currentpath & "/MusiNotify.app"))
+			on error
+				try
+					do shell script "rm ~/Library/MusiNotify.app.zip"
+				end try
+				try
+					do shell script "rm -rf ~/Library/__MACOSX"
+				end try
+				try
+					do shell script "rm -rf ~/Library/MusiNotify.app"
+				end try
+			end try
+		end if
+	end if
+end UpdateCheck
+
 on FirstPrefSetup()
 	try
 		do shell script "touch ~/Library/Preferences/" & preffile
@@ -94,7 +145,7 @@ on FirstPrefSetup()
 		do shell script "defaults write " & preffile & " 'DispAlb' '0'"
 		do shell script "defaults write " & preffile & " 'NumOfNot' '3'"
 		do shell script "defaults write " & preffile & " 'RemoveOnQuit' '1'"
-		do shell script "defaults write " & preffile & " 'AppVersion' '4.3.3'"
+		do shell script "defaults write " & preffile & " 'AppVersion' '" & CurrentAppVersion & "'"
 		
 		-- Install the preference script
 		try
@@ -169,7 +220,7 @@ on CheckSpotify()
 					
 					log "Notification - " & strk
 					do shell script quoted form of NPSP & " -title " & (quoted form of strk) & " -subtitle " & (quoted form of sart) & " -message " & (quoted form of salb) & " " & xid & " -execute 'open /Applications/Spotify.app'" -- Display the notification
-					log "Checking…"
+					log "Checking..."
 					set sid to tid
 				end try
 			end if
