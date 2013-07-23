@@ -1,3 +1,4 @@
-4.4.2
+4.4.3
 New features:
-- Bug fix
+- Can have 0 notifications in sidebar
+- GitHub hosted Version page
