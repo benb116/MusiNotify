@@ -3,7 +3,7 @@ global DispArt, DispAlb, NumOfNot, RemoveOnQuit, sid, iid, x, y, NPSP, NPIT, tha
 try
 	CheckSystemVersion() -- Check to make sure that the user is running OSX 10.8
 	set preffile to "com.BenB116.MusiNotify.plist"
-	set CurrentAppVersion to "4.4.0"
+	set CurrentAppVersion to "4.4.1"
 	
 	UpdateCheck()
 	
@@ -21,7 +21,6 @@ repeat
 			CheckSpotify() -- Check if the song has changed
 		else
 			if RemoveOnQuit = "1" then -- If app isn't running and RemoveOnQuit is set to 1 then...
-				log spotgroups
 				repeat with a in spotgroups
 					RemoveSpotify(a) -- Remove notifications
 				end repeat
@@ -46,14 +45,14 @@ on CheckSystemVersion()
 		set vers to (do shell script "sw_vers -productVersion")
 		set pte to (do shell script "echo " & vers & " | cut -d '.' -f 1-2")
 		if pte is not equal to "10.8" then
-			display dialog "Sorry. This app requires OSX 10.8+" buttons ("OK")
+			display dialog "Sorry. This app requires OSX 10.8+" buttons ("OK") with icon (path to resource "applet.icns")
 			try
 				set the_pid to (do shell script "ps ax | grep " & (quoted form of (POSIX path of (path to me))) & " | grep -v grep | awk '{print $1}'")
 				if the_pid is not "" then do shell script ("kill -9 " & the_pid)
 			end try
 		end if
 	on error msg
-		display dialog "CheckSystemVersion - " & msg with title "Error - MusiNotify"
+		display dialog "CheckSystemVersion - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
 		return
 	end try
 end CheckSystemVersion
@@ -62,71 +61,69 @@ on CheckPrefFile()
 	try
 		set prefFilePath to "~/Library/Preferences/" & preffile
 		repeat
-			try
-				tell application "/System/Library/CoreServices/System Events.app"
-					if exists file prefFilePath then
-						return true
-					else
-						return false
-					end if
-				end tell
-				exit repeat
-			on error
-				log "Trying for system events"
-			end try
+			tell application "System Events"
+				if exists file prefFilePath then
+					return true
+				else
+					return false
+				end if
+			end tell
+			exit repeat
 		end repeat
 	on error msg
-		display dialog "CheckPrefFile - " & msg with title "Error - MusiNotify"
+		display dialog "CheckPrefFile - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
 		return
 	end try
 end CheckPrefFile
 
 on UpdateCheck()
-	set preffile to "com.BenB116.MusiNotify.plist"
-	set CurrentAppVersion to do shell script "defaults read " & preffile & " 'AppVersion'"
-	set currentpath to do shell script "dirname " & (POSIX path of "/Applications/MusiNotify.app")
-	set currentpath to currentpath & "/"
-	
-	set raw to (do shell script "curl benbern.dyndns.info/MusiNotify/Version.txt")
-	set LatestVersion to first paragraph of raw
-	
-	if LatestVersion ­ CurrentAppVersion then
-		set Featlist to ""
-		try
-			set NewFeats to paragraphs 2 thru -1 of raw
-			repeat with feat in NewFeats
-				set Featlist to Featlist & feat & return
-			end repeat
-		on error
-			set Featlist to ""
-		end try
+	try
+		set CurrentAppVersion to do shell script "defaults read " & preffile & " 'AppVersion'"
+		set currentpath to do shell script "dirname " & (POSIX path of "/Applications/MusiNotify.app")
+		set currentpath to currentpath & "/"
+		set raw to (do shell script "curl benbern.dyndns.info/MusiNotify/Version.txt")
+		set LatestVersion to first paragraph of raw
 		
-		set UpdateQ to button returned of (display dialog "MusiNotify " & LatestVersion & " is available for update." & return & return & Featlist with title "MusiNotify - Update" buttons {"Don't Update", "Update"} default button 2)
-		if UpdateQ = "Update" then
+		if LatestVersion ­ CurrentAppVersion then
+			set Featlist to ""
 			try
-				do shell script "cd ~/Library; curl -O https://raw.github.com/benb116/MusiNotify/master/MusiNotify.app.zip; unzip MusiNotify.app.zip"
-				do shell script "cp -rf ~/Library/MusiNotify.app " & currentpath
-				try
-					do shell script "rm ~/Library/MusiNotify.app.zip; rm -rf ~/Library/__MACOSX; rm -rf ~/Library/MusiNotify.app"
-				end try
-				do shell script "defaults write " & preffile & " 'AppVersion' '" & LatestVersion & "'"
-				display dialog "Update complete. Restart MusiNotify for the changes to take effect." buttons ("Restart") default button 1
-				
-				set the_pid to (do shell script "ps ax | grep " & currentpath & "MusiNotify.app | grep -v grep | awk '{print $1}'")
-				if the_pid is not "" then do shell script ("kill -9 " & the_pid & "; open " & (currentpath & "/MusiNotify.app"))
+				set NewFeats to paragraphs 2 thru -1 of raw
+				repeat with feat in NewFeats
+					set Featlist to Featlist & feat & return
+				end repeat
 			on error
-				try
-					do shell script "rm ~/Library/MusiNotify.app.zip"
-				end try
-				try
-					do shell script "rm -rf ~/Library/__MACOSX"
-				end try
-				try
-					do shell script "rm -rf ~/Library/MusiNotify.app"
-				end try
+				set Featlist to ""
 			end try
+			
+			set UpdateQ to button returned of (display dialog "MusiNotify " & LatestVersion & " is available for update." & return & return & Featlist with title "MusiNotify - Update" buttons {"Don't Update", "Update"} default button 2 with icon (path to resource "applet.icns"))
+			if UpdateQ = "Update" then
+				try
+					do shell script "cd ~/Library; curl -O https://raw.github.com/benb116/MusiNotify/master/MusiNotify.app.zip; unzip MusiNotify.app.zip"
+					do shell script "cp -rf ~/Library/MusiNotify.app " & currentpath
+					try
+						do shell script "rm ~/Library/MusiNotify.app.zip; rm -rf ~/Library/__MACOSX; rm -rf ~/Library/MusiNotify.app"
+					end try
+					do shell script "defaults write " & preffile & " 'AppVersion' '" & LatestVersion & "'"
+					display dialog "Update complete. Restart MusiNotify for the changes to take effect." buttons ("Restart") default button 1 with icon (path to resource "applet.icns") with title "MusiNotify - Update"
+					
+					set the_pid to (do shell script "ps ax | grep " & currentpath & "MusiNotify.app | grep -v grep | awk '{print $1}'")
+					if the_pid is not "" then do shell script ("kill -9 " & the_pid & "; open " & (currentpath & "/MusiNotify.app"))
+				on error
+					try
+						do shell script "rm ~/Library/MusiNotify.app.zip"
+					end try
+					try
+						do shell script "rm -rf ~/Library/__MACOSX"
+					end try
+					try
+						do shell script "rm -rf ~/Library/MusiNotify.app"
+					end try
+				end try
+			end if
 		end if
-	end if
+	on error
+		display dialog "UpdateCheck - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
+	end try
 end UpdateCheck
 
 on FirstPrefSetup()
@@ -135,7 +132,7 @@ on FirstPrefSetup()
 		
 		-- Set initial settings
 		do shell script "defaults write " & preffile & " 'login' '0'"
-		set ans to button returned of (display dialog "Would you like to set this app as a login item?" buttons {"No", "Yes"} default button 2 with title "MusiNotify")
+		set ans to button returned of (display dialog "Would you like to set this app as a login item?" buttons {"No", "Yes"} default button 2 with title "MusiNotify" with icon (path to resource "applet.icns"))
 		if ans = "Yes" then
 			do shell script "defaults write " & preffile & " 'login' '1'"
 			set mypath to (POSIX path of (path to me))
@@ -158,9 +155,8 @@ on FirstPrefSetup()
 		try
 			do shell script quoted form of ((POSIX path of (path to me)) & "Contents/Resources/MusiNotify - Spotify.app/Contents/MacOS/MusiNotify - Spotify")
 		end try
-		
 	on error msg
-		display dialog "FirstPrefSetup - " & msg with title "Error - MusiNotify"
+		display dialog "FirstPrefSetup - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
 		return
 	end try
 end FirstPrefSetup
@@ -179,7 +175,7 @@ on InitialSetup()
 		set NPIT to (POSIX path of (path to me)) & "/Contents/Resources/MusiNotify - iTunes.app/Contents/MacOS/MusiNotify - iTunes"
 		set NPSP to (POSIX path of (path to me)) & "/Contents/Resources/MusiNotify - Spotify.app/Contents/MacOS/MusiNotify - Spotify"
 	on error msg
-		display dialog "InitialSetup - " & msg with title "Error - MusiNotify"
+		display dialog "InitialSetup - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
 		return
 	end try
 end InitialSetup
@@ -191,7 +187,7 @@ on ReadPrefs()
 		set NumOfNot to (do shell script "defaults read " & preffile & " 'NumOfNot'")
 		set RemoveOnQuit to (do shell script "defaults read " & preffile & " 'RemoveOnQuit'")
 	on error msg
-		display dialog "ReadPrefs - " & msg with title "Error - MusiNotify"
+		display dialog "ReadPrefs - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
 		return
 	end try
 end ReadPrefs
@@ -207,7 +203,6 @@ on CheckSpotify()
 		end tell
 		if talb does not contain "http" and talb does not contain "spotify:" then -- If the track is not an ad...
 			set thanked to false
-			log tid
 			if tid is not equal to sid then -- If track has changed...
 				try
 					set sart to " "
@@ -218,13 +213,10 @@ on CheckSpotify()
 					set theid to SpotDet() -- Get the ID
 					set xid to "-group SP" & theid as text
 					
-					log "Notification - " & strk
 					do shell script quoted form of NPSP & " -title " & (quoted form of strk) & " -subtitle " & (quoted form of sart) & " -message " & (quoted form of salb) & " " & xid & " -execute 'open /Applications/Spotify.app'" -- Display the notification
-					log "Checking..."
 					set sid to tid
 				end try
 			end if
-			
 		else
 			try
 				if thanked is false then
@@ -266,7 +258,7 @@ on SpotDet()
 		set beginning of spotgroups to x
 		return (first item of spotgroups) as integer
 	on error msg
-		display dialog "SpotDet - " & msg with title "Error - MusiNotify"
+		display dialog "SpotDet - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
 		return
 	end try
 end SpotDet
@@ -280,7 +272,6 @@ on CheckiTunes()
 			set talb to album of current track
 			set tid to id of current track
 		end tell
-		
 		if tid is not equal to iid then -- If track has changed...
 			try
 				set iart to " "
@@ -331,7 +322,7 @@ on ItunDet()
 		log Itungroups
 		return (first item of Itungroups) as integer
 	on error msg
-		display dialog "iTunDet - " & msg with title "Error - MusiNotify"
+		display dialog "iTunDet - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
 		return
 	end try
 end ItunDet
@@ -342,7 +333,7 @@ on RemoveSpotify(a)
 			do shell script quoted form of NPSP & " -remove SP" & a
 		end if
 	on error msg
-		display dialog "RemoveSpotify - " & msg with title "Error - MusiNotify"
+		display dialog "RemoveSpotify - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
 		return
 	end try
 end RemoveSpotify
@@ -353,7 +344,7 @@ on RemoveiTunes(b)
 			do shell script quoted form of NPIT & " -remove IT" & b
 		end if
 	on error msg
-		display dialog "RemoveiTunes - " & msg with title "Error - MusiNotify"
+		display dialog "RemoveiTunes - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
 		return
 	end try
 end RemoveiTunes
