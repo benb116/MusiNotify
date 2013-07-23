@@ -74,7 +74,7 @@ on NumOfNot()
 	repeat
 		set q5 to (display dialog Â
 			"MusiNotify currently displays " & NumNot & " notifications in the sidebar." & return & return & Â
-			"How many notifications would you like displayed in the sidebar?" default answer "" & NumNot & Â
+			"How many notifications would you like displayed in the sidebar? (Enter a number ³ 0)" default answer "" & NumNot & Â
 			"" with title "MusiNotify Preferences" default button 2)
 		try
 			set newnum to text returned of q5 as integer

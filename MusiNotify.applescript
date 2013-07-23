@@ -3,7 +3,7 @@ global DispArt, DispAlb, NumOfNot, RemoveOnQuit, sid, iid, x, y, NPSP, NPIT, tha
 try
 	CheckSystemVersion() -- Check to make sure that the user is running OSX 10.8
 	set preffile to "com.BenB116.MusiNotify.plist"
-	set CurrentAppVersion to "4.4.1"
+	set CurrentAppVersion to "4.4.3"
 	
 	UpdateCheck()
 	
@@ -81,7 +81,7 @@ on UpdateCheck()
 		set CurrentAppVersion to do shell script "defaults read " & preffile & " 'AppVersion'"
 		set currentpath to do shell script "dirname " & (POSIX path of "/Applications/MusiNotify.app")
 		set currentpath to currentpath & "/"
-		set raw to (do shell script "curl benbern.dyndns.info/MusiNotify/Version.txt")
+		set raw to (do shell script "curl raw.github.com/benb116/MusiNotify/master/Version.txt")
 		set LatestVersion to first paragraph of raw
 		
 		if LatestVersion ­ CurrentAppVersion then
@@ -214,6 +214,16 @@ on CheckSpotify()
 					set xid to "-group SP" & theid as text
 					
 					do shell script quoted form of NPSP & " -title " & (quoted form of strk) & " -subtitle " & (quoted form of sart) & " -message " & (quoted form of salb) & " " & xid & " -execute 'open /Applications/Spotify.app'" -- Display the notification
+					if NumOfNot = "0" then
+						try
+							repeat with a in spotgroups
+								delay 0.1
+								RemoveSpotify(a) -- Remove notifications
+							end repeat
+							set spotgroups to {} -- Clear
+						end try
+						do shell script quoted form of NPSP & " -remove SP0"
+					end if
 					set sid to tid
 				end try
 			end if
@@ -231,32 +241,36 @@ end CheckSpotify
 
 on SpotDet()
 	try
-		if (count of spotgroups) = NumOfNot as integer then -- If full
-			set x to last item of spotgroups
-			try
-				set spotgroups to (items 1 thru -2 of spotgroups)
-			on error
-				set spotgroups to {}
-			end try
-		else if (count of spotgroups) < NumOfNot as integer then -- If not full
-			repeat
-				set x to x + 1
-				if spotgroups does not contain x then exit repeat
-			end repeat
-		else if (count of spotgroups) > NumOfNot as integer then -- If over-filled
-			repeat with a from NumOfNot + 1 to (count of spotgroups)
-				RemoveSpotify((item a of spotgroups))
-			end repeat
-			set spotgroups to (items 1 thru NumOfNot of spotgroups)
-			set x to last item of spotgroups
-			try
-				set spotgroups to (items 1 thru -2 of spotgroups)
-			on error
-				set spotgroups to {}
-			end try
+		if NumOfNot = "0" then
+			return 0
+		else
+			if (count of spotgroups) = NumOfNot as integer then -- If full
+				set x to last item of spotgroups
+				try
+					set spotgroups to (items 1 thru -2 of spotgroups)
+				on error
+					set spotgroups to {}
+				end try
+			else if (count of spotgroups) < NumOfNot as integer then -- If not full
+				repeat
+					set x to x + 1
+					if spotgroups does not contain x then exit repeat
+				end repeat
+			else if (count of spotgroups) > NumOfNot as integer then -- If over-filled
+				repeat with a from NumOfNot + 1 to (count of spotgroups)
+					RemoveSpotify((item a of spotgroups))
+				end repeat
+				set spotgroups to (items 1 thru NumOfNot of spotgroups)
+				set x to last item of spotgroups
+				try
+					set spotgroups to (items 1 thru -2 of spotgroups)
+				on error
+					set spotgroups to {}
+				end try
+			end if
+			set beginning of spotgroups to x
+			return (first item of spotgroups) as integer
 		end if
-		set beginning of spotgroups to x
-		return (first item of spotgroups) as integer
 	on error msg
 		display dialog "SpotDet - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
 		return
@@ -283,6 +297,16 @@ on CheckiTunes()
 				set yid to "-group IT" & theid as text
 				
 				do shell script quoted form of NPIT & " -title " & (quoted form of itrk) & " -subtitle " & (quoted form of iart) & " -message " & (quoted form of ialb) & " " & yid & " -execute 'open /Applications/iTunes.app'" -- Display the notification
+				if NumOfNot = "0" then
+					try
+						repeat with b in Itungroups
+							delay 0.1
+							RemoveiTunes(b) -- Remove notifications
+						end repeat
+						set Itungroups to {} -- Clear
+					end try
+					do shell script quoted form of NPIT & " -remove IT0"
+				end if
 				set iid to tid
 			end try
 		end if
@@ -292,35 +316,38 @@ end CheckiTunes
 on ItunDet()
 	try
 		-- Same as SpotDet(), converted to iTunes
-		if (count of Itungroups) = NumOfNot as integer then
-			set y to last item of Itungroups
-			try
-				set Itungroups to (items 1 thru -2 of Itungroups)
-			on error
-				set Itungroups to {}
-			end try
-			log y
-		else if (count of Itungroups) < NumOfNot as integer then
-			repeat
-				set y to y + 1
-				if Itungroups does not contain y then exit repeat
-			end repeat
-		else if (count of Itungroups) > NumOfNot as integer then
-			repeat with b from NumOfNot + 1 to (count of Itungroups)
-				log b
-				RemoveiTunes((item b of Itungroups))
-			end repeat
-			set Itungroups to (items 1 thru NumOfNot of Itungroups)
-			set y to last item of Itungroups
-			try
-				set Itungroups to (items 1 thru -2 of Itungroups)
-			on error
-				set Itungroups to {}
-			end try
+		if NumOfNot = "0" then
+			return 0
+		else
+			if (count of Itungroups) = NumOfNot as integer then
+				set y to last item of Itungroups
+				try
+					set Itungroups to (items 1 thru -2 of Itungroups)
+				on error
+					set Itungroups to {}
+				end try
+				log y
+			else if (count of Itungroups) < NumOfNot as integer then
+				repeat
+					set y to y + 1
+					if Itungroups does not contain y then exit repeat
+				end repeat
+			else if (count of Itungroups) > NumOfNot as integer then
+				repeat with b from NumOfNot + 1 to (count of Itungroups)
+					log b
+					RemoveiTunes((item b of Itungroups))
+				end repeat
+				set Itungroups to (items 1 thru NumOfNot of Itungroups)
+				set y to last item of Itungroups
+				try
+					set Itungroups to (items 1 thru -2 of Itungroups)
+				on error
+					set Itungroups to {}
+				end try
+			end if
+			set beginning of Itungroups to y
+			return (first item of Itungroups) as integer
 		end if
-		set beginning of Itungroups to y
-		log Itungroups
-		return (first item of Itungroups) as integer
 	on error msg
 		display dialog "iTunDet - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
 		return
