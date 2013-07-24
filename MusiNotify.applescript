@@ -1,12 +1,13 @@
 global DispArt, DispAlb, NumOfNot, RemoveOnQuit, sid, iid, x, y, NPSP, NPIT, thanked, preffile, spotgroups, Itungroups, CurrentAppVersion
 
 try
-	CheckSystemVersion() -- Check to make sure that the user is running OSX 10.8
+	CheckSystemVersion() -- Check to make sure that the user is running OS X 10.8
 	set preffile to "com.BenB116.MusiNotify.plist"
-	set CurrentAppVersion to "4.4.3"
+	set CurrentAppVersion to "4.4.4"
 	
-	UpdateCheck()
-	
+	UpdateCheck() -- Check for updates
+end try
+try
 	if not CheckPrefFile() then FirstPrefSetup() -- If the preference fle doesn't exist, then make one and do a first-run setup
 	
 	InitialSetup() -- Set up variables
@@ -42,11 +43,11 @@ end repeat
 
 on CheckSystemVersion()
 	try
-		set vers to (do shell script "sw_vers -productVersion")
+		set vers to (do shell script "sw_vers -productVersion") -- Get Version of OS X
 		set pte to (do shell script "echo " & vers & " | cut -d '.' -f 1-2")
 		if pte is not equal to "10.8" then
 			display dialog "Sorry. This app requires OSX 10.8+" buttons ("OK") with icon (path to resource "applet.icns")
-			try
+			try -- Kill MusiNotify
 				set the_pid to (do shell script "ps ax | grep " & (quoted form of (POSIX path of (path to me))) & " | grep -v grep | awk '{print $1}'")
 				if the_pid is not "" then do shell script ("kill -9 " & the_pid)
 			end try
@@ -57,36 +58,14 @@ on CheckSystemVersion()
 	end try
 end CheckSystemVersion
 
-on CheckPrefFile()
-	try
-		set prefFilePath to "~/Library/Preferences/" & preffile
-		repeat
-			tell application "System Events"
-				if exists file prefFilePath then
-					return true
-				else
-					return false
-				end if
-			end tell
-			exit repeat
-		end repeat
-	on error msg
-		display dialog "CheckPrefFile - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
-		return
-	end try
-end CheckPrefFile
-
 on UpdateCheck()
 	try
-		set CurrentAppVersion to do shell script "defaults read " & preffile & " 'AppVersion'"
-		set currentpath to do shell script "dirname " & (POSIX path of "/Applications/MusiNotify.app")
-		set currentpath to currentpath & "/"
-		set raw to (do shell script "curl raw.github.com/benb116/MusiNotify/master/Version.txt")
-		set LatestVersion to first paragraph of raw
+		set raw to (do shell script "curl https://raw.github.com/benb116/MusiNotify/master/Version.txt")
+		set LatestVersion to first paragraph of raw -- Get latest version
 		
 		if LatestVersion ­ CurrentAppVersion then
 			set Featlist to ""
-			try
+			try -- Get new feature list
 				set NewFeats to paragraphs 2 thru -1 of raw
 				repeat with feat in NewFeats
 					set Featlist to Featlist & feat & return
@@ -98,16 +77,17 @@ on UpdateCheck()
 			set UpdateQ to button returned of (display dialog "MusiNotify " & LatestVersion & " is available for update." & return & return & Featlist with title "MusiNotify - Update" buttons {"Don't Update", "Update"} default button 2 with icon (path to resource "applet.icns"))
 			if UpdateQ = "Update" then
 				try
-					do shell script "cd ~/Library; curl -O https://raw.github.com/benb116/MusiNotify/master/MusiNotify.app.zip; unzip MusiNotify.app.zip"
-					do shell script "cp -rf ~/Library/MusiNotify.app " & currentpath
+					do shell script "cd ~/Library; curl -O https://raw.github.com/benb116/MusiNotify/master/MusiNotify.app.zip; unzip MusiNotify.app.zip" -- Download new app and unzip
+					set currentpath to do shell script "dirname " & (POSIX path of "/Applications/MusiNotify.app")
+					set currentpath to currentpath & "/"
+					do shell script "cp -rf ~/Library/MusiNotify.app " & currentpath -- Replace the old app
 					try
-						do shell script "rm ~/Library/MusiNotify.app.zip; rm -rf ~/Library/__MACOSX; rm -rf ~/Library/MusiNotify.app"
+						do shell script "rm ~/Library/MusiNotify.app.zip; rm -rf ~/Library/__MACOSX; rm -rf ~/Library/MusiNotify.app" -- Get rid of extra files
 					end try
-					do shell script "defaults write " & preffile & " 'AppVersion' '" & LatestVersion & "'"
 					display dialog "Update complete. Restart MusiNotify for the changes to take effect." buttons ("Restart") default button 1 with icon (path to resource "applet.icns") with title "MusiNotify - Update"
 					
 					set the_pid to (do shell script "ps ax | grep " & currentpath & "MusiNotify.app | grep -v grep | awk '{print $1}'")
-					if the_pid is not "" then do shell script ("kill -9 " & the_pid & "; open " & (currentpath & "/MusiNotify.app"))
+					if the_pid is not "" then do shell script ("kill -9 " & the_pid & "; open " & (currentpath & "/MusiNotify.app")) -- Restart
 				on error
 					try
 						do shell script "rm ~/Library/MusiNotify.app.zip"
@@ -126,9 +106,28 @@ on UpdateCheck()
 	end try
 end UpdateCheck
 
+on CheckPrefFile()
+	try
+		set prefFilePath to "~/Library/Preferences/" & preffile
+		repeat
+			tell application "System Events"
+				if exists file prefFilePath then -- Does the pref file exist?
+					return true
+				else
+					return false
+				end if
+			end tell
+			exit repeat
+		end repeat
+	on error msg
+		display dialog "CheckPrefFile - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
+		return
+	end try
+end CheckPrefFile
+
 on FirstPrefSetup()
 	try
-		do shell script "touch ~/Library/Preferences/" & preffile
+		do shell script "touch ~/Library/Preferences/" & preffile -- Make the pref file
 		
 		-- Set initial settings
 		do shell script "defaults write " & preffile & " 'login' '0'"
@@ -136,19 +135,17 @@ on FirstPrefSetup()
 		if ans = "Yes" then
 			do shell script "defaults write " & preffile & " 'login' '1'"
 			set mypath to (POSIX path of (path to me))
-			tell application "System Events" to make login item at end with properties {path:mypath, kind:application}
+			tell application "System Events" to make login item at end with properties {path:mypath, kind:application} -- Add to login items
 		end if
 		do shell script "defaults write " & preffile & " 'DispArt' '1'"
 		do shell script "defaults write " & preffile & " 'DispAlb' '0'"
 		do shell script "defaults write " & preffile & " 'NumOfNot' '3'"
 		do shell script "defaults write " & preffile & " 'RemoveOnQuit' '1'"
-		do shell script "defaults write " & preffile & " 'AppVersion' '" & CurrentAppVersion & "'"
-		
-		-- Install the preference script
 		try
 			set prefreso to (POSIX path of (path to me) & "Contents/Resources/MusiNotify-Preferences.scpt")
-			do shell script "cp " & prefreso & " ~/Library/Scripts/"
+			do shell script "cp " & prefreso & " ~/Library/Scripts/" -- Install the preference script
 		end try
+		-- Run the notifiers to reset their icons
 		try
 			do shell script quoted form of ((POSIX path of (path to me)) & "Contents/Resources/MusiNotify - iTunes.app/Contents/MacOS/MusiNotify - iTunes")
 		end try
@@ -163,7 +160,7 @@ end FirstPrefSetup
 
 on InitialSetup()
 	try
-		do shell script "defaults write " & preffile & " 'loginPath' '" & (POSIX path of (path to me)) & "'"
+		do shell script "defaults write " & preffile & " 'loginPath' '" & (POSIX path of (path to me)) & "'" -- Update login path
 	end try
 	try
 		set sid to ""

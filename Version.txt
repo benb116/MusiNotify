@@ -1,4 +1,3 @@
-4.4.3
+4.4.4
 New features:
-- Can have 0 notifications in sidebar
-- GitHub hosted Version page
+- Fixed bug when no preference file existed
