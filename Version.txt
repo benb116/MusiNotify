@@ -1,3 +1,6 @@
-4.4.4
+4.4.5
 New features:
-- Fixed bug when no preference file existed
+- Updated icons for notifications
+- Should work better with remaining notifications if MusiNotify is quit
+- Cleaned up "Remove Notifications" commands
+- Should notify all the time after Spotify launches

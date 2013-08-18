@@ -3,7 +3,7 @@ global DispArt, DispAlb, NumOfNot, RemoveOnQuit, sid, iid, x, y, NPSP, NPIT, tha
 try
 	CheckSystemVersion() -- Check to make sure that the user is running OS X 10.8
 	set preffile to "com.BenB116.MusiNotify.plist"
-	set CurrentAppVersion to "4.4.4"
+	set CurrentAppVersion to "4.4.5"
 	
 	UpdateCheck() -- Check for updates
 end try
@@ -23,20 +23,24 @@ repeat
 		else
 			if RemoveOnQuit = "1" then -- If app isn't running and RemoveOnQuit is set to 1 then...
 				repeat with a in spotgroups
-					RemoveSpotify(a) -- Remove notifications
+					do shell script quoted form of NPSP & " -remove SP" & a -- Remove notifications
 				end repeat
 				set spotgroups to {} -- Clear
+				do shell script "defaults write com.BenB116.MusiNotify.plist 'SpotifyCurrentGroups' ''"
 			end if
+			set sid to ""
 		end if
 		if applist contains "iTunes" then
 			CheckiTunes() -- Check if the song has changed
 		else
 			if RemoveOnQuit = "1" then -- If app isn't running and RemoveOnQuit is set to 1 then...
 				repeat with b in Itungroups
-					RemoveiTunes(b) -- Remove notifications
+					do shell script quoted form of NPIT & " -remove IT" & b -- Remove notifications
 				end repeat
 				set Itungroups to {} -- Clear
+				do shell script "defaults write com.BenB116.MusiNotify.plist 'iTunesCurrentGroups' ''"
 			end if
+			set iid to ""
 		end if
 	end try
 end repeat
@@ -167,8 +171,31 @@ on InitialSetup()
 		set iid to ""
 		set x to 0
 		set y to 0
-		set spotgroups to {}
-		set Itungroups to {}
+		
+		try
+			set previousspotgroups to do shell script "defaults read com.benb116.musinotify.plist 'SpotifyCurrentGroups'" -- Read Previous Notifications
+			set newgrop to paragraphs 2 thru -2 of previousspotgroups as list
+			set spotgroups to {}
+			repeat with y from 1 to (count of newgrop)
+				set newnum to (fifth character of (item y of newgrop)) as integer
+				set end of spotgroups to newnum
+			end repeat
+		on error
+			set spotgroups to {}
+		end try
+		
+		try
+			set previousitungroups to do shell script "defaults read com.benb116.musinotify.plist 'iTunesCurrentGroups'"
+			set newgrop to paragraphs 2 thru -2 of previousitungroups as list
+			set Itungroups to {}
+			repeat with y from 1 to (count of newgrop)
+				set newnum to (fifth character of (item y of newgrop)) as integer
+				set end of Itungroups to newnum
+			end repeat
+		on error
+			set Itungroups to {}
+		end try
+		
 		set NPIT to (POSIX path of (path to me)) & "/Contents/Resources/MusiNotify - iTunes.app/Contents/MacOS/MusiNotify - iTunes"
 		set NPSP to (POSIX path of (path to me)) & "/Contents/Resources/MusiNotify - Spotify.app/Contents/MacOS/MusiNotify - Spotify"
 	on error msg
@@ -214,13 +241,19 @@ on CheckSpotify()
 					if NumOfNot = "0" then
 						try
 							repeat with a in spotgroups
-								delay 0.1
-								RemoveSpotify(a) -- Remove notifications
+								do shell script quoted form of NPSP & " -remove SP" & a -- Remove notifications
 							end repeat
 							set spotgroups to {} -- Clear
 						end try
 						do shell script quoted form of NPSP & " -remove SP0"
 					end if
+					
+					set Formspotgroups to ""
+					repeat with z in spotgroups
+						set Formspotgroups to Formspotgroups & ((z as text) & ", ")
+					end repeat
+					do shell script "defaults write com.benb116.musinotify.plist 'SpotifyCurrentGroups' '(" & Formspotgroups & ")'" -- Record Current Groups
+					
 					set sid to tid
 				end try
 			end if
@@ -255,7 +288,7 @@ on SpotDet()
 				end repeat
 			else if (count of spotgroups) > NumOfNot as integer then -- If over-filled
 				repeat with a from NumOfNot + 1 to (count of spotgroups)
-					RemoveSpotify((item a of spotgroups))
+					do shell script quoted form of NPSP & " -remove SP" & (item a of spotgroups)
 				end repeat
 				set spotgroups to (items 1 thru NumOfNot of spotgroups)
 				set x to last item of spotgroups
@@ -266,6 +299,7 @@ on SpotDet()
 				end try
 			end if
 			set beginning of spotgroups to x
+			
 			return (first item of spotgroups) as integer
 		end if
 	on error msg
@@ -297,13 +331,19 @@ on CheckiTunes()
 				if NumOfNot = "0" then
 					try
 						repeat with b in Itungroups
-							delay 0.1
-							RemoveiTunes(b) -- Remove notifications
+							do shell script quoted form of NPIT & " -remove IT" & b -- Remove notifications
 						end repeat
 						set Itungroups to {} -- Clear
 					end try
 					do shell script quoted form of NPIT & " -remove IT0"
 				end if
+				
+				set Formitungroups to ""
+				repeat with z in Itungroups
+					set Formitungroups to Formitungroups & ((z as text) & ", ")
+				end repeat
+				do shell script "defaults write com.benb116.musinotify.plist 'iTunesCurrentGroups' '(" & Formitungroups & ")'" -- Record Current Groups
+				
 				set iid to tid
 			end try
 		end if
@@ -323,7 +363,6 @@ on ItunDet()
 				on error
 					set Itungroups to {}
 				end try
-				log y
 			else if (count of Itungroups) < NumOfNot as integer then
 				repeat
 					set y to y + 1
@@ -331,8 +370,7 @@ on ItunDet()
 				end repeat
 			else if (count of Itungroups) > NumOfNot as integer then
 				repeat with b from NumOfNot + 1 to (count of Itungroups)
-					log b
-					RemoveiTunes((item b of Itungroups))
+					do shell script quoted form of NPIT & " -remove IT" & (item b of Itungroups)
 				end repeat
 				set Itungroups to (items 1 thru NumOfNot of Itungroups)
 				set y to last item of Itungroups
@@ -343,6 +381,13 @@ on ItunDet()
 				end try
 			end if
 			set beginning of Itungroups to y
+			
+			set Formitungroups to ""
+			repeat with z in Itungroups
+				set Formitungroups to Formitungroups & ((z as text) & ", ")
+			end repeat
+			do shell script "defaults write com.benb116.musinotify.plist 'iTunesCurrentGroups' '(" & Formitungroups & ")'"
+			
 			return (first item of Itungroups) as integer
 		end if
 	on error msg
@@ -350,25 +395,3 @@ on ItunDet()
 		return
 	end try
 end ItunDet
-
-on RemoveSpotify(a)
-	try
-		if (count of spotgroups) ­ 0 then
-			do shell script quoted form of NPSP & " -remove SP" & a
-		end if
-	on error msg
-		display dialog "RemoveSpotify - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
-		return
-	end try
-end RemoveSpotify
-
-on RemoveiTunes(b)
-	try
-		if (count of Itungroups) ­ 0 then
-			do shell script quoted form of NPIT & " -remove IT" & b
-		end if
-	on error msg
-		display dialog "RemoveiTunes - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
-		return
-	end try
-end RemoveiTunes
