@@ -3,7 +3,7 @@ global DispArt, DispAlb, NumOfNot, RemoveOnQuit, sid, iid, x, y, NPSP, NPIT, tha
 try
 	CheckSystemVersion() -- Check to make sure that the user is running OS X 10.8
 	set preffile to "com.BenB116.MusiNotify.plist"
-	set CurrentAppVersion to "4.4.5"
+	set CurrentAppVersion to "4.4.6"
 	
 	UpdateCheck() -- Check for updates
 end try
@@ -13,7 +13,7 @@ try
 	InitialSetup() -- Set up variables
 end try
 
-repeat
+repeat -- Main Loop
 	delay 0.2
 	try
 		ReadPrefs() -- Read preference values
@@ -51,10 +51,7 @@ on CheckSystemVersion()
 		set pte to (do shell script "echo " & vers & " | cut -d '.' -f 1-2")
 		if pte is not equal to "10.8" then
 			display dialog "Sorry. This app requires OSX 10.8+" buttons ("OK") with icon (path to resource "applet.icns")
-			try -- Kill MusiNotify
-				set the_pid to (do shell script "ps ax | grep " & (quoted form of (POSIX path of (path to me))) & " | grep -v grep | awk '{print $1}'")
-				if the_pid is not "" then do shell script ("kill -9 " & the_pid)
-			end try
+			KillMusiNotify()
 		end if
 	on error msg
 		display dialog "CheckSystemVersion - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
@@ -67,7 +64,7 @@ on UpdateCheck()
 		set raw to (do shell script "curl https://raw.github.com/benb116/MusiNotify/master/Version.txt")
 		set LatestVersion to first paragraph of raw -- Get latest version
 		
-		if LatestVersion ­ CurrentAppVersion then
+		if LatestVersion is not equal to CurrentAppVersion then
 			set Featlist to ""
 			try -- Get new feature list
 				set NewFeats to paragraphs 2 thru -1 of raw
@@ -125,7 +122,7 @@ on CheckPrefFile()
 		end repeat
 	on error msg
 		display dialog "CheckPrefFile - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
-		return
+		KillMusiNotify()
 	end try
 end CheckPrefFile
 
@@ -158,7 +155,7 @@ on FirstPrefSetup()
 		end try
 	on error msg
 		display dialog "FirstPrefSetup - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
-		return
+		KillMusiNotify()
 	end try
 end FirstPrefSetup
 
@@ -173,24 +170,24 @@ on InitialSetup()
 		set y to 0
 		
 		try
-			set previousspotgroups to do shell script "defaults read com.benb116.musinotify.plist 'SpotifyCurrentGroups'" -- Read Previous Notifications
+			set previousspotgroups to do shell script "defaults read " & preffile & " 'SpotifyCurrentGroups'" -- Read Previous Notifications
 			set newgrop to paragraphs 2 thru -2 of previousspotgroups as list
 			set spotgroups to {}
-			repeat with y from 1 to (count of newgrop)
-				set newnum to (fifth character of (item y of newgrop)) as integer
-				set end of spotgroups to newnum
+			repeat with y in newgrop
+				set newraw to do shell script "echo '" & y & "' | cut -d ' ' -f 5 | cut -d ',' -f 1"
+				set end of spotgroups to (newraw as integer)
 			end repeat
 		on error
 			set spotgroups to {}
 		end try
 		
 		try
-			set previousitungroups to do shell script "defaults read com.benb116.musinotify.plist 'iTunesCurrentGroups'"
+			set previousitungroups to do shell script "defaults read " & preffile & "'iTunesCurrentGroups'"
 			set newgrop to paragraphs 2 thru -2 of previousitungroups as list
 			set Itungroups to {}
-			repeat with y from 1 to (count of newgrop)
-				set newnum to (fifth character of (item y of newgrop)) as integer
-				set end of Itungroups to newnum
+			repeat with y in newgrop
+				set newraw to do shell script "echo '" & y & "' | cut -d ' ' -f 5 | cut -d ',' -f 1"
+				set end of Itungroups to (newraw as integer)
 			end repeat
 		on error
 			set Itungroups to {}
@@ -200,7 +197,7 @@ on InitialSetup()
 		set NPSP to (POSIX path of (path to me)) & "/Contents/Resources/MusiNotify - Spotify.app/Contents/MacOS/MusiNotify - Spotify"
 	on error msg
 		display dialog "InitialSetup - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
-		return
+		KillMusiNotify()
 	end try
 end InitialSetup
 
@@ -212,7 +209,7 @@ on ReadPrefs()
 		set RemoveOnQuit to (do shell script "defaults read " & preffile & " 'RemoveOnQuit'")
 	on error msg
 		display dialog "ReadPrefs - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
-		return
+		KillMusiNotify()
 	end try
 end ReadPrefs
 
@@ -304,7 +301,7 @@ on SpotDet()
 		end if
 	on error msg
 		display dialog "SpotDet - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
-		return
+		KillMusiNotify()
 	end try
 end SpotDet
 
@@ -392,6 +389,13 @@ on ItunDet()
 		end if
 	on error msg
 		display dialog "iTunDet - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
-		return
+		KillMusiNotify()
 	end try
 end ItunDet
+
+on KillMusiNotify()
+	try -- Kill MusiNotify
+		set the_pid to (do shell script "ps ax | grep " & (quoted form of (POSIX path of (path to me))) & " | grep -v grep | awk '{print $1}'")
+		if the_pid is not "" then do shell script ("kill -9 " & the_pid)
+	end try
+end KillMusiNotify
