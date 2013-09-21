@@ -1,4 +1,3 @@
-4.4.6
+4.4.7
 New features:
-- Fixed bug with multi-digit notification groups
-- Made the KillMusiNotify function simpler
+- Test 1

@@ -1,9 +1,9 @@
-global DispArt, DispAlb, NumOfNot, RemoveOnQuit, sid, iid, x, y, NPSP, NPIT, thanked, preffile, spotgroups, Itungroups, CurrentAppVersion
+global DispArt, DispAlb, NumOfNot, RemoveOnQuit, sid, iid, x, y, NPSP, NPIT, thanked, preffile, spotgroups, Itungroups, CurrentAppVersion, spotinotify, itunotify
 
 try
 	CheckSystemVersion() -- Check to make sure that the user is running OS X 10.8
 	set preffile to "com.BenB116.MusiNotify.plist"
-	set CurrentAppVersion to "4.4.6"
+	set CurrentAppVersion to "4.4.7"
 	
 	UpdateCheck() -- Check for updates
 end try
@@ -14,14 +14,14 @@ try
 end try
 
 repeat -- Main Loop
-	delay 0.2
+	delay 2
 	try
 		ReadPrefs() -- Read preference values
 		tell application "System Events" to set applist to (name of every process whose background only = false) -- See which apps are running
-		if applist contains "Spotify" then
+		if applist contains "Spotify" and spotinotify = "1" then
 			CheckSpotify() -- Check if the song has changed
 		else
-			if RemoveOnQuit = "1" then -- If app isn't running and RemoveOnQuit is set to 1 then...
+			if RemoveOnQuit = "1" and (count of spotgroups) is not equal to 0 then -- If app isn't running and RemoveOnQuit is set to 1 then...
 				repeat with a in spotgroups
 					do shell script quoted form of NPSP & " -remove SP" & a -- Remove notifications
 				end repeat
@@ -30,10 +30,10 @@ repeat -- Main Loop
 			end if
 			set sid to ""
 		end if
-		if applist contains "iTunes" then
+		if applist contains "iTunes" and itunotify = "1" then
 			CheckiTunes() -- Check if the song has changed
 		else
-			if RemoveOnQuit = "1" then -- If app isn't running and RemoveOnQuit is set to 1 then...
+			if RemoveOnQuit = "1" and (count of Itungroups) is not equal to 0 then -- If app isn't running and RemoveOnQuit is set to 1 then...
 				repeat with b in Itungroups
 					do shell script quoted form of NPIT & " -remove IT" & b -- Remove notifications
 				end repeat
@@ -61,7 +61,7 @@ end CheckSystemVersion
 
 on UpdateCheck()
 	try
-		set raw to (do shell script "curl https://raw.github.com/benb116/MusiNotify/master/Version.txt")
+		set raw to (do shell script "curl http://raw.github.com/benb116/MusiNotify/master/Version.txt")
 		set LatestVersion to first paragraph of raw -- Get latest version
 		
 		if LatestVersion is not equal to CurrentAppVersion then
@@ -82,6 +82,7 @@ on UpdateCheck()
 					set currentpath to do shell script "dirname " & (POSIX path of "/Applications/MusiNotify.app")
 					set currentpath to currentpath & "/"
 					do shell script "cp -rf ~/Library/MusiNotify.app " & currentpath -- Replace the old app
+					do shell script "cp -f " & currentpath & "Contents/Resources/MusiNotify Preferences.scpt ~/Library/Scripts/MusiNotify Preferences.scpt"
 					try
 						do shell script "rm ~/Library/MusiNotify.app.zip; rm -rf ~/Library/__MACOSX; rm -rf ~/Library/MusiNotify.app" -- Get rid of extra files
 					end try
@@ -131,6 +132,22 @@ on FirstPrefSetup()
 		do shell script "touch ~/Library/Preferences/" & preffile -- Make the pref file
 		
 		-- Set initial settings
+		do shell script "defaults write " & preffile & " 'SpotiNotify' '1'"
+		do shell script "defaults write " & preffile & " 'iTuNotify' '1'"
+		
+		try -- Check current iTunes version
+			set currentiTunesversion to (do shell script "defaults read /Applications/iTunes.app/Contents/Info.plist 'CFBundleShortVersionString'")
+			if currentiTunesversion contains "11.1" then -- Version 11.1 has built-in notifications
+				set iTuneschoice to button returned of (display dialog Â
+					"Hi there, it looks like you're using iTunes 11.1. " & return & return & Â
+					"This version of iTunes has notifications built in, so you don't NEED to use MusiNotify. However, MusiNotify is much more customizable and (in the opinion of the developer) better." & return & return & Â
+					"Would you like to use MusiNotify for iTunes?" buttons {"Don't use MusiNotify for iTunes", "Use MusiNotify for iTunes"} default button 2)
+				if iTuneschoice = "Don't use MusiNotify for iTunes" then
+					do shell script "defaults write " & preffile & " 'iTuNotify' '0'"
+				end if
+			end if
+		end try
+		
 		do shell script "defaults write " & preffile & " 'login' '0'"
 		set ans to button returned of (display dialog "Would you like to set this app as a login item?" buttons {"No", "Yes"} default button 2 with title "MusiNotify" with icon (path to resource "applet.icns"))
 		if ans = "Yes" then
@@ -143,7 +160,7 @@ on FirstPrefSetup()
 		do shell script "defaults write " & preffile & " 'NumOfNot' '3'"
 		do shell script "defaults write " & preffile & " 'RemoveOnQuit' '1'"
 		try
-			set prefreso to (POSIX path of (path to me) & "Contents/Resources/MusiNotify-Preferences.scpt")
+			set prefreso to (POSIX path of (path to me) & "Contents/Resources/MusiNotify Preferences.scpt")
 			do shell script "cp " & prefreso & " ~/Library/Scripts/" -- Install the preference script
 		end try
 		-- Run the notifiers to reset their icons
@@ -173,7 +190,7 @@ on InitialSetup()
 			set previousspotgroups to do shell script "defaults read " & preffile & " 'SpotifyCurrentGroups'" -- Read Previous Notifications
 			set newgrop to paragraphs 2 thru -2 of previousspotgroups as list
 			set spotgroups to {}
-			repeat with y in newgrop
+			repeat with t in newgrop
 				set newraw to do shell script "echo '" & y & "' | cut -d ' ' -f 5 | cut -d ',' -f 1"
 				set end of spotgroups to (newraw as integer)
 			end repeat
@@ -182,10 +199,10 @@ on InitialSetup()
 		end try
 		
 		try
-			set previousitungroups to do shell script "defaults read " & preffile & "'iTunesCurrentGroups'"
+			set previousitungroups to do shell script "defaults read " & preffile & " 'iTunesCurrentGroups'"
 			set newgrop to paragraphs 2 thru -2 of previousitungroups as list
 			set Itungroups to {}
-			repeat with y in newgrop
+			repeat with t in newgrop
 				set newraw to do shell script "echo '" & y & "' | cut -d ' ' -f 5 | cut -d ',' -f 1"
 				set end of Itungroups to (newraw as integer)
 			end repeat
@@ -193,7 +210,7 @@ on InitialSetup()
 			set Itungroups to {}
 		end try
 		
-		set NPIT to (POSIX path of (path to me)) & "/Contents/Resources/MusiNotify - iTunes.app/Contents/MacOS/MusiNotify - iTunes"
+		set NPIT to (POSIX path of (path to me)) & "Contents/Resources/MusiNotify - iTunes .app/Contents/MacOS/MusiNotify - iTunes"
 		set NPSP to (POSIX path of (path to me)) & "/Contents/Resources/MusiNotify - Spotify.app/Contents/MacOS/MusiNotify - Spotify"
 	on error msg
 		display dialog "InitialSetup - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
@@ -203,6 +220,8 @@ end InitialSetup
 
 on ReadPrefs()
 	try
+		set spotinotify to (do shell script "defaults read " & preffile & " 'SpotiNotify'")
+		set itunotify to (do shell script "defaults read " & preffile & " 'iTuNotify'")
 		set DispArt to (do shell script "defaults read " & preffile & " 'DispArt'")
 		set DispAlb to (do shell script "defaults read " & preffile & " 'DispAlb'")
 		set NumOfNot to (do shell script "defaults read " & preffile & " 'NumOfNot'")

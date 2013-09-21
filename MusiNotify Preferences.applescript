@@ -1,15 +1,47 @@
-global preffile
+global preffile, spotinotify, itunotify
 set preffile to "com.BenB116.MusiNotify.plist"
 
-set q1 to (choose from list {"Login Item", "Display Artist Name", "Display Album Name", "Number of Notifications in Sidebar", "Clear Notifications on Quit"} Â
+set spotinotify to (do shell script "defaults read " & preffile & " 'SpotiNotify'")
+set itunotify to (do shell script "defaults read " & preffile & " 'iTuNotify'")
+if spotinotify = "1" then
+	set isSpotEnab to "Disable"
+else
+	set isSpotEnab to "Enable"
+end if
+if itunotify = "1" then
+	set isiTunEnab to "Disable"
+else
+	set isiTunEnab to "Enable"
+end if
+
+set q0 to (choose from list {isiTunEnab & " iTunes Notifications", isSpotEnab & " Spotify Notifications", "Customize MusiNotify"} Â
 	with prompt Â
 	"Which preferences would you like to change?" with title "MusiNotify Preferences" with multiple selections allowed)
+if q0 contains isiTunEnab & " iTunes Notifications" then EnDisiTunes()
+if q0 contains isSpotEnab & " Spotify Notifications" then EnDisSpotify()
 
-if q1 contains "Login Item" then loginitem()
-if q1 contains "Display Artist Name" then DispArt()
-if q1 contains "Display Album Name" then DispAlb()
-if q1 contains "Number of Notifications in Sidebar" then NumOfNot()
-if q1 contains "Clear Notifications on Quit" then RemoveOnQuit()
+on EnDisiTunes()
+	if itunotify = "1" then changepref("iTuNotify", "0")
+	if itunotify = "0" then changepref("iTuNotify", "1")
+end EnDisiTunes
+
+on EnDisSpotify()
+	if spotinotify = "1" then changepref("SpotiNotify", "0")
+	if spotinotify = "0" then changepref("SpotiNotify", "1")
+end EnDisSpotify
+
+if q0 contains "Customize MusiNotify" then
+	set q1 to (choose from list {"Login Item", "Display Artist Name", "Display Album Name", "Number of Notifications in Sidebar", "Clear Notifications on Quit"} Â
+		with prompt Â
+		"Which preferences would you like to change?" with title "MusiNotify Preferences" with multiple selections allowed)
+	
+	if q1 contains "Login Item" then loginitem()
+	if q1 contains "Display Artist Name" then DispArt()
+	if q1 contains "Display Album Name" then DispAlb()
+	if q1 contains "Number of Notifications in Sidebar" then NumOfNot()
+	if q1 contains "Clear Notifications on Quit" then RemoveOnQuit()
+	
+end if
 
 display dialog "Preferences saved." buttons ("OK") default button 1 with title "MusiNotify Preferences"
 
