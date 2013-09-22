@@ -1,5 +1,6 @@
-4.5.0
+4.5.0.1
 New Features
+- Bug fix from 4.5.0: could not retrieve previous ID's after reopening
 - New Preference Menu
 - Ability to turn on and off notifications for iTunes OR Spotify
 - Asks about notifications in iTunes 11.1

@@ -3,7 +3,7 @@ global DispArt, DispAlb, NumOfNot, RemoveOnQuit, sid, iid, x, y, NPSP, NPIT, tha
 try
 	CheckSystemVersion() -- Check to make sure that the user is running OS X 10.8
 	set preffile to "com.BenB116.MusiNotify.plist"
-	set CurrentAppVersion to "4.5.0"
+	set CurrentAppVersion to "4.5.0.1"
 	
 	UpdateCheck() -- Check for updates
 end try
@@ -198,9 +198,11 @@ on InitialSetup()
 			set newgrop to paragraphs 2 thru -2 of previousspotgroups as list
 			set spotgroups to {}
 			repeat with t in newgrop
-				set newraw to do shell script "echo '" & y & "' | cut -d ' ' -f 5 | cut -d ',' -f 1"
+				set newraw to do shell script "echo '" & t & "' | cut -d ' ' -f 5 | cut -d ',' -f 1"
 				set end of spotgroups to (newraw as integer)
 			end repeat
+			set end of spotgroups to (first item of spotgroups)
+			set spotgroups to (items 2 thru -1 of spotgroups)
 		on error
 			set spotgroups to {}
 		end try
@@ -210,9 +212,11 @@ on InitialSetup()
 			set newgrop to paragraphs 2 thru -2 of previousitungroups as list
 			set Itungroups to {}
 			repeat with t in newgrop
-				set newraw to do shell script "echo '" & y & "' | cut -d ' ' -f 5 | cut -d ',' -f 1"
+				set newraw to do shell script "echo '" & t & "' | cut -d ' ' -f 5 | cut -d ',' -f 1"
 				set end of Itungroups to (newraw as integer)
 			end repeat
+			set end of Itungroups to (first item of Itungroups)
+			set Itungroups to (items 2 thru -1 of Itungroups)
 		on error
 			set Itungroups to {}
 		end try
@@ -275,7 +279,7 @@ on CheckSpotify()
 					repeat with z in spotgroups
 						set Formspotgroups to Formspotgroups & ((z as text) & ", ")
 					end repeat
-					do shell script "defaults write com.benb116.musinotify.plist 'SpotifyCurrentGroups' '(" & Formspotgroups & ")'" -- Record Current Groups
+					do shell script "defaults write " & preffile & " 'SpotifyCurrentGroups' '(" & Formspotgroups & ")'" -- Record Current Groups
 					
 					set sid to tid
 				end try
