@@ -1,3 +1,7 @@
-4.4.9.1
-New features:
-- Test Final??
+4.5.0
+New Features
+- New Preference Menu
+- Ability to turn on and off notifications for iTunes OR Spotify
+- Asks about notifications in iTunes 11.1
+- New KillMusiNotify()
+- General cleanup. Should run smoother and without as much work

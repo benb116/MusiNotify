@@ -3,7 +3,7 @@ global DispArt, DispAlb, NumOfNot, RemoveOnQuit, sid, iid, x, y, NPSP, NPIT, tha
 try
 	CheckSystemVersion() -- Check to make sure that the user is running OS X 10.8
 	set preffile to "com.BenB116.MusiNotify.plist"
-	set CurrentAppVersion to "4.4.7"
+	set CurrentAppVersion to "4.5.0"
 	
 	UpdateCheck() -- Check for updates
 end try
@@ -14,10 +14,11 @@ try
 end try
 
 repeat -- Main Loop
-	delay 2
+	delay 0.5
 	try
 		ReadPrefs() -- Read preference values
 		tell application "System Events" to set applist to (name of every process whose background only = false) -- See which apps are running
+		delay 0.2
 		if applist contains "Spotify" and spotinotify = "1" then
 			CheckSpotify() -- Check if the song has changed
 		else
@@ -61,7 +62,7 @@ end CheckSystemVersion
 
 on UpdateCheck()
 	try
-		set raw to (do shell script "curl http://raw.github.com/benb116/MusiNotify/master/Version.txt")
+		set raw to (do shell script "curl https://raw.github.com/benb116/MusiNotify/master/Version.txt")
 		set LatestVersion to first paragraph of raw -- Get latest version
 		
 		if LatestVersion is not equal to CurrentAppVersion then
@@ -79,17 +80,23 @@ on UpdateCheck()
 			if UpdateQ = "Update" then
 				try
 					do shell script "cd ~/Library; curl -O https://raw.github.com/benb116/MusiNotify/master/MusiNotify.app.zip; unzip MusiNotify.app.zip" -- Download new app and unzip
-					set currentpath to do shell script "dirname " & (POSIX path of "/Applications/MusiNotify.app")
-					set currentpath to currentpath & "/"
+					
+					set currentpath to do shell script "dirname " & (POSIX path of "/Applications/MusiNotify.app") & "/"
 					do shell script "cp -rf ~/Library/MusiNotify.app " & currentpath -- Replace the old app
-					do shell script "cp -f " & currentpath & "Contents/Resources/MusiNotify Preferences.scpt ~/Library/Scripts/MusiNotify Preferences.scpt"
+					
+					do shell script "cp -f " & currentpath & "/MusiNotify.app/Contents/Resources/" & quoted form of ("MusiNotify Preferences.scpt") & " ~/Library/Scripts/" -- Copy the new preference file
+					
+					display dialog "Update complete. Restart MusiNotify for the changes to take effect." buttons ("OK") default button 1 with icon (path to resource "applet.icns") with title "MusiNotify - Update"
+					
 					try
 						do shell script "rm ~/Library/MusiNotify.app.zip; rm -rf ~/Library/__MACOSX; rm -rf ~/Library/MusiNotify.app" -- Get rid of extra files
 					end try
-					display dialog "Update complete. Restart MusiNotify for the changes to take effect." buttons ("Restart") default button 1 with icon (path to resource "applet.icns") with title "MusiNotify - Update"
 					
-					set the_pid to (do shell script "ps ax | grep " & currentpath & "MusiNotify.app | grep -v grep | awk '{print $1}'")
-					if the_pid is not "" then do shell script ("kill -9 " & the_pid & "; open " & (currentpath & "/MusiNotify.app")) -- Restart
+					tell application "System Events"
+						set theID to (unix id of processes whose name is "MusiNotify")
+						do shell script "kill -9 " & theID
+					end tell
+					
 				on error
 					try
 						do shell script "rm ~/Library/MusiNotify.app.zip"
@@ -250,8 +257,8 @@ on CheckSpotify()
 					set salb to " "
 					if DispAlb = "1" and talb is not equal to "" then set salb to "On " & talb
 					
-					set theid to SpotDet() -- Get the ID
-					set xid to "-group SP" & theid as text
+					set theID to SpotDet() -- Get the ID
+					set xid to "-group SP" & theID as text
 					
 					do shell script quoted form of NPSP & " -title " & (quoted form of strk) & " -subtitle " & (quoted form of sart) & " -message " & (quoted form of salb) & " " & xid & " -execute 'open /Applications/Spotify.app'" -- Display the notification
 					if NumOfNot = "0" then
@@ -340,8 +347,8 @@ on CheckiTunes()
 				set ialb to " "
 				if DispAlb = "1" and talb is not equal to "" then set ialb to "On " & talb
 				
-				set theid to ItunDet() -- Get the ID
-				set yid to "-group IT" & theid as text
+				set theID to ItunDet() -- Get the ID
+				set yid to "-group IT" & theID as text
 				
 				do shell script quoted form of NPIT & " -title " & (quoted form of itrk) & " -subtitle " & (quoted form of iart) & " -message " & (quoted form of ialb) & " " & yid & " -execute 'open /Applications/iTunes.app'" -- Display the notification
 				if NumOfNot = "0" then
@@ -414,7 +421,9 @@ end ItunDet
 
 on KillMusiNotify()
 	try -- Kill MusiNotify
-		set the_pid to (do shell script "ps ax | grep " & (quoted form of (POSIX path of (path to me))) & " | grep -v grep | awk '{print $1}'")
-		if the_pid is not "" then do shell script ("kill -9 " & the_pid)
+		tell application "System Events"
+			set theID to (unix id of processes whose name is "MusiNotify")
+			do shell script "kill -9 " & theID
+		end tell
 	end try
 end KillMusiNotify

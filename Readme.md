@@ -6,7 +6,16 @@ This is a plugin for Mac OS X 10.8 and up. It displays a notification using two 
 Mac OS X 10.8 or higher is required.
 <br>
 ###How does it work?
-MusiNotify checks every .2 seconds to see if either iTunes or Spotify are running. If either is, MusiNotify will get the name, artist, album, and id of the current track. If the id changes, MusiNotify will display a notification with the app's icon.
+MusiNotify continually checks to see if either iTunes or Spotify are running. If either is, MusiNotify will get the name, artist, album, and id of the current track. If the id changes, MusiNotify will display a notification with the app's icon. Pretty simple!
+
+So why does the app have almost 400 LOC? 
+
+1.	It has a fully-automated update system
+2.	It has a total of seven different user preferences
+3.	It has a .plist file to keep track of the preferences
+3.	It keeps track of notification ID's, which is a complex task when the number of notifications in the sidebar has virtually no limit and can change at a moment's notice
+4.	It adds and removes specific notifications to maintain the users desired settings
+4.	It does this for iTunes and Spotify
 
 ###Current Features
 * Optionally display the artist and/or album
@@ -14,7 +23,8 @@ MusiNotify checks every .2 seconds to see if either iTunes or Spotify are runnin
 * Optionally clear notifications from the sidebar when iTunes or Spotify is quit.
 * Will not display notifications for audio ads in Spotify
 
-
+###Tell me about how MusiNotify works for you
+Let me know if there is a bug, a feature request, or if the darn thing just doesn't work.
 
 
 ![image](http://f.cl.ly/items/0A2P2O0W3L053n1I3x0L/Spot%20Art.png)
