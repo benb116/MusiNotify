@@ -1,3 +1,4 @@
-4.5.1
+4.5.1.1
 New Features
 - Newer, separate update system that lets the app begin and check at the same time.
+- Fixed small bug where app would ask twice to update.
