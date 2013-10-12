@@ -3,9 +3,9 @@ global DispArt, DispAlb, NumOfNot, RemoveOnQuit, sid, iid, x, y, NPSP, NPIT, tha
 try
 	CheckSystemVersion() -- Check to make sure that the user is running OS X 10.8
 	set preffile to "com.BenB116.MusiNotify.plist"
-	set CurrentAppVersion to "4.5.0.1"
+	set CurrentAppVersion to "4.5.1"
 	
-	UpdateCheck() -- Check for updates
+	do shell script "open " & POSIX path of (path to me) & quoted form of ("Contents/Resources/MusiNotify Updater.app")
 end try
 try
 	if not CheckPrefFile() then FirstPrefSetup() -- If the preference fle doesn't exist, then make one and do a first-run setup
@@ -14,9 +14,9 @@ try
 end try
 
 repeat -- Main Loop
-	delay 0.5
 	try
 		ReadPrefs() -- Read preference values
+		
 		tell application "System Events" to set applist to (name of every process whose background only = false) -- See which apps are running
 		delay 0.2
 		if applist contains "Spotify" and spotinotify = "1" then
@@ -60,61 +60,6 @@ on CheckSystemVersion()
 	end try
 end CheckSystemVersion
 
-on UpdateCheck()
-	try
-		set raw to (do shell script "curl https://raw.github.com/benb116/MusiNotify/master/Version.txt")
-		set LatestVersion to first paragraph of raw -- Get latest version
-		
-		if LatestVersion is not equal to CurrentAppVersion then
-			set Featlist to ""
-			try -- Get new feature list
-				set NewFeats to paragraphs 2 thru -1 of raw
-				repeat with feat in NewFeats
-					set Featlist to Featlist & feat & return
-				end repeat
-			on error
-				set Featlist to ""
-			end try
-			
-			set UpdateQ to button returned of (display dialog "MusiNotify " & LatestVersion & " is available for update." & return & return & Featlist with title "MusiNotify - Update" buttons {"Don't Update", "Update"} default button 2 with icon (path to resource "applet.icns"))
-			if UpdateQ = "Update" then
-				try
-					do shell script "cd ~/Library; curl -O https://raw.github.com/benb116/MusiNotify/master/MusiNotify.app.zip; unzip MusiNotify.app.zip" -- Download new app and unzip
-					
-					set currentpath to do shell script "dirname " & (POSIX path of "/Applications/MusiNotify.app") & "/"
-					do shell script "cp -rf ~/Library/MusiNotify.app " & currentpath -- Replace the old app
-					
-					do shell script "cp -f " & currentpath & "/MusiNotify.app/Contents/Resources/" & quoted form of ("MusiNotify Preferences.scpt") & " ~/Library/Scripts/" -- Copy the new preference file
-					
-					display dialog "Update complete. Restart MusiNotify for the changes to take effect." buttons ("OK") default button 1 with icon (path to resource "applet.icns") with title "MusiNotify - Update"
-					
-					try
-						do shell script "rm ~/Library/MusiNotify.app.zip; rm -rf ~/Library/__MACOSX; rm -rf ~/Library/MusiNotify.app" -- Get rid of extra files
-					end try
-					
-					tell application "System Events"
-						set theID to (unix id of processes whose name is "MusiNotify")
-						do shell script "kill -9 " & theID
-					end tell
-					
-				on error
-					try
-						do shell script "rm ~/Library/MusiNotify.app.zip"
-					end try
-					try
-						do shell script "rm -rf ~/Library/__MACOSX"
-					end try
-					try
-						do shell script "rm -rf ~/Library/MusiNotify.app"
-					end try
-				end try
-			end if
-		end if
-	on error
-		display dialog "UpdateCheck - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
-	end try
-end UpdateCheck
-
 on CheckPrefFile()
 	try
 		set prefFilePath to "~/Library/Preferences/" & preffile
@@ -141,19 +86,6 @@ on FirstPrefSetup()
 		-- Set initial settings
 		do shell script "defaults write " & preffile & " 'SpotiNotify' '1'"
 		do shell script "defaults write " & preffile & " 'iTuNotify' '1'"
-		
-		try -- Check current iTunes version
-			set currentiTunesversion to (do shell script "defaults read /Applications/iTunes.app/Contents/Info.plist 'CFBundleShortVersionString'")
-			if currentiTunesversion contains "11.1" then -- Version 11.1 has built-in notifications
-				set iTuneschoice to button returned of (display dialog Â
-					"Hi there, it looks like you're using iTunes 11.1. " & return & return & Â
-					"This version of iTunes has notifications built in, so you don't NEED to use MusiNotify. However, MusiNotify is much more customizable and (in the opinion of the developer) better." & return & return & Â
-					"Would you like to use MusiNotify for iTunes?" buttons {"Don't use MusiNotify for iTunes", "Use MusiNotify for iTunes"} default button 2)
-				if iTuneschoice = "Don't use MusiNotify for iTunes" then
-					do shell script "defaults write " & preffile & " 'iTuNotify' '0'"
-				end if
-			end if
-		end try
 		
 		do shell script "defaults write " & preffile & " 'login' '0'"
 		set ans to button returned of (display dialog "Would you like to set this app as a login item?" buttons {"No", "Yes"} default button 2 with title "MusiNotify" with icon (path to resource "applet.icns"))
@@ -192,6 +124,8 @@ on InitialSetup()
 		set iid to ""
 		set x to 0
 		set y to 0
+		set NPIT to (POSIX path of (path to me)) & "Contents/Resources/MusiNotify - iTunes .app/Contents/MacOS/MusiNotify - iTunes"
+		set NPSP to (POSIX path of (path to me)) & "/Contents/Resources/MusiNotify - Spotify.app/Contents/MacOS/MusiNotify - Spotify"
 		
 		try
 			set previousspotgroups to do shell script "defaults read " & preffile & " 'SpotifyCurrentGroups'" -- Read Previous Notifications
@@ -221,8 +155,13 @@ on InitialSetup()
 			set Itungroups to {}
 		end try
 		
-		set NPIT to (POSIX path of (path to me)) & "Contents/Resources/MusiNotify - iTunes .app/Contents/MacOS/MusiNotify - iTunes"
-		set NPSP to (POSIX path of (path to me)) & "/Contents/Resources/MusiNotify - Spotify.app/Contents/MacOS/MusiNotify - Spotify"
+		try
+			iTunes11dot1()
+		end try
+		
+		try
+			do shell script "defaults write " & preffile & " 'CurrentAppVersion' '" & CurrentAppVersion & "'"
+		end try
 	on error msg
 		display dialog "InitialSetup - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
 		KillMusiNotify()
@@ -431,3 +370,26 @@ on KillMusiNotify()
 		end tell
 	end try
 end KillMusiNotify
+
+on iTunes11dot1()
+	try -- Check current iTunes version
+		try
+			set asked to (do shell script "defaults read " & preffile & " '11.1_Ask'")
+		on error
+			set asked to "0"
+		end try
+		if asked is not equal to "1" then
+			set currentiTunesversion to (do shell script "defaults read /Applications/iTunes.app/Contents/Info.plist 'CFBundleShortVersionString'")
+			if currentiTunesversion contains "11.1" then -- Version 11.1 has built-in notifications
+				set iTuneschoice to button returned of (display dialog Â
+					"Hi there, it looks like you're using iTunes 11.1. " & return & return & Â
+					"This version of iTunes has notifications built in, so you don't NEED to use MusiNotify. However, MusiNotify is much more customizable and (in the opinion of the developer) better." & return & return & Â
+					"Would you like to use MusiNotify for iTunes?" buttons {"Don't use MusiNotify for iTunes", "Use MusiNotify for iTunes"} default button 2)
+				if iTuneschoice = "Don't use MusiNotify for iTunes" then
+					do shell script "defaults write " & preffile & " 'iTuNotify' '0'"
+				end if
+				do shell script "defaults write " & preffile & " '11.1_Ask' '1'"
+			end if
+		end if
+	end try
+end iTunes11dot1

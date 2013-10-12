@@ -1,8 +1,3 @@
-4.5.0.1
+4.5.1
 New Features
-- Bug fix from 4.5.0: could not retrieve previous ID's after reopening
-- New Preference Menu
-- Ability to turn on and off notifications for iTunes OR Spotify
-- Asks about notifications in iTunes 11.1
-- New KillMusiNotify()
-- General cleanup. Should run smoother and without as much work
+- Newer, separate update system that lets the app begin and check at the same time.
