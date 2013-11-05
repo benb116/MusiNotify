@@ -3,7 +3,7 @@ global DispArt, DispAlb, NumOfNot, RemoveOnQuit, sid, iid, x, y, NPSP, NPIT, tha
 try
 	CheckSystemVersion() -- Check to make sure that the user is running OS X 10.8
 	set preffile to "com.BenB116.MusiNotify.plist"
-	set CurrentAppVersion to "4.5.1.1"
+	set CurrentAppVersion to "4.5.1.2"
 	
 	do shell script "open " & POSIX path of (path to me) & quoted form of ("Contents/Resources/MusiNotify Updater.app")
 end try
@@ -14,43 +14,43 @@ try
 end try
 
 repeat -- Main Loop
+	ReadPrefs() -- Read preference values
+	
 	try
-		ReadPrefs() -- Read preference values
-		
 		tell application "System Events" to set applist to (name of every process whose background only = false) -- See which apps are running
-		delay 0.2
-		if applist contains "Spotify" and spotinotify = "1" then
-			CheckSpotify() -- Check if the song has changed
-		else
-			if RemoveOnQuit = "1" and (count of spotgroups) is not equal to 0 then -- If app isn't running and RemoveOnQuit is set to 1 then...
-				repeat with a in spotgroups
-					do shell script quoted form of NPSP & " -remove SP" & a -- Remove notifications
-				end repeat
-				set spotgroups to {} -- Clear
-				do shell script "defaults write com.BenB116.MusiNotify.plist 'SpotifyCurrentGroups' ''"
-			end if
-			set sid to ""
-		end if
-		if applist contains "iTunes" and itunotify = "1" then
-			CheckiTunes() -- Check if the song has changed
-		else
-			if RemoveOnQuit = "1" and (count of Itungroups) is not equal to 0 then -- If app isn't running and RemoveOnQuit is set to 1 then...
-				repeat with b in Itungroups
-					do shell script quoted form of NPIT & " -remove IT" & b -- Remove notifications
-				end repeat
-				set Itungroups to {} -- Clear
-				do shell script "defaults write com.BenB116.MusiNotify.plist 'iTunesCurrentGroups' ''"
-			end if
-			set iid to ""
-		end if
 	end try
+	if applist contains "Spotify" and spotinotify = "1" then
+		CheckSpotify() -- Check if the song has changed
+	else
+		if RemoveOnQuit = "1" and (count of spotgroups) is not equal to 0 then -- If app isn't running and RemoveOnQuit is set to 1 then...
+			repeat with a in spotgroups
+				do shell script quoted form of NPSP & " -remove SP" & a -- Remove notifications
+			end repeat
+			set spotgroups to {} -- Clear
+			do shell script "defaults write com.BenB116.MusiNotify.plist 'SpotifyCurrentGroups' ''"
+		end if
+		set sid to ""
+	end if
+	if applist contains "iTunes" and itunotify = "1" then
+		CheckiTunes() -- Check if the song has changed
+	else
+		if RemoveOnQuit = "1" and (count of Itungroups) is not equal to 0 then -- If app isn't running and RemoveOnQuit is set to 1 then...
+			repeat with b in Itungroups
+				do shell script quoted form of NPIT & " -remove IT" & b -- Remove notifications
+			end repeat
+			set Itungroups to {} -- Clear
+			do shell script "defaults write com.BenB116.MusiNotify.plist 'iTunesCurrentGroups' ''"
+		end if
+		set iid to ""
+	end if
+	delay 0.01
 end repeat
 
 on CheckSystemVersion()
 	try
 		set vers to (do shell script "sw_vers -productVersion") -- Get Version of OS X
 		set pte to (do shell script "echo " & vers & " | cut -d '.' -f 1-2")
-		if pte is not equal to "10.8" then
+		if pte is not equal to "10.8" and pte is not equal to "10.9" then
 			display dialog "Sorry. This app requires OSX 10.8+" buttons ("OK") with icon (path to resource "applet.icns")
 			KillMusiNotify()
 		end if
@@ -92,12 +92,17 @@ on FirstPrefSetup()
 		if ans = "Yes" then
 			do shell script "defaults write " & preffile & " 'login' '1'"
 			set mypath to (POSIX path of (path to me))
-			tell application "System Events" to make login item at end with properties {path:mypath, kind:application} -- Add to login items
+			tell application "System Events" to make login item at end with properties {path:mypath} -- Add to login items
 		end if
 		do shell script "defaults write " & preffile & " 'DispArt' '1'"
 		do shell script "defaults write " & preffile & " 'DispAlb' '0'"
 		do shell script "defaults write " & preffile & " 'NumOfNot' '3'"
 		do shell script "defaults write " & preffile & " 'RemoveOnQuit' '1'"
+		
+		try
+			iTunes11dot1()
+		end try
+		
 		try
 			set prefreso to (POSIX path of (path to me) & "Contents/Resources/MusiNotify Preferences.scpt")
 			do shell script "cp " & prefreso & " ~/Library/Scripts/" -- Install the preference script
@@ -109,6 +114,9 @@ on FirstPrefSetup()
 		try
 			do shell script quoted form of ((POSIX path of (path to me)) & "Contents/Resources/MusiNotify - Spotify.app/Contents/MacOS/MusiNotify - Spotify")
 		end try
+		
+		display dialog "You're all set! Play a song in iTunes or Spotify to test it out." buttons {"Awesome!"} default button 1 with title "MusiNotify" with icon (path to resource "applet.icns") giving up after 5
+		
 	on error msg
 		display dialog "FirstPrefSetup - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
 		KillMusiNotify()
@@ -140,6 +148,8 @@ on InitialSetup()
 		on error
 			set spotgroups to {}
 		end try
+		
+		log spotgroups
 		
 		try
 			set previousitungroups to do shell script "defaults read " & preffile & " 'iTunesCurrentGroups'"
@@ -240,6 +250,7 @@ on SpotDet()
 		if NumOfNot = "0" then
 			return 0
 		else
+			log spotgroups
 			if (count of spotgroups) = NumOfNot as integer then -- If full
 				set x to last item of spotgroups
 				try
@@ -281,7 +292,7 @@ on CheckiTunes()
 			set itrk to name of current track
 			set tart to artist of current track
 			set talb to album of current track
-			set tid to id of current track
+			set tid to persistent ID of current track
 		end tell
 		if tid is not equal to iid then -- If track has changed...
 			try
@@ -352,7 +363,6 @@ on ItunDet()
 			repeat with z in Itungroups
 				set Formitungroups to Formitungroups & ((z as text) & ", ")
 			end repeat
-			do shell script "defaults write com.benb116.musinotify.plist 'iTunesCurrentGroups' '(" & Formitungroups & ")'"
 			
 			return (first item of Itungroups) as integer
 		end if

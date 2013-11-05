@@ -1,6 +1,13 @@
 set preffile to "com.BenB116.MusiNotify.plist"
 try
-	set CurrentAppVersion to (do shell script "defaults read " & preffile & " 'CurrentAppVersion'")
+	
+	repeat
+		try
+			set CurrentAppVersion to (do shell script "defaults read " & preffile & " 'CurrentAppVersion'")
+			exit repeat
+		end try
+	end repeat
+	
 	set raw to (do shell script "curl https://raw.github.com/benb116/MusiNotify/master/Version.txt")
 	set LatestVersion to first paragraph of raw -- Get latest version
 	
@@ -41,6 +48,10 @@ try
 				do shell script "defaults write " & preffile & " 'CurrentAppVersion' '" & LatestVersion & "'"
 				
 				do shell script "kill -9 " & pid
+				
+				delay 1
+				
+				do shell script "open " & currentpath & "/MusiNotify.app"
 				
 			on error
 				try

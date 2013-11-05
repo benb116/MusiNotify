@@ -1,4 +1,6 @@
-4.5.1.1
+4.5.1.2
 New Features
-- Newer, separate update system that lets the app begin and check at the same time.
-- Fixed small bug where app would ask twice to update.
+- Support for 10.9 Mavericks
+- More efficient Updater app
+- Fixed login item bug
+- Small cleanup
