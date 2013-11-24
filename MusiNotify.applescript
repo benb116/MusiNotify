@@ -3,9 +3,8 @@ global DispArt, DispAlb, NumOfNot, RemoveOnQuit, sid, iid, x, y, NPSP, NPIT, tha
 try
 	CheckSystemVersion() -- Check to make sure that the user is running OS X 10.8
 	set preffile to "com.BenB116.MusiNotify.plist"
-	set CurrentAppVersion to "4.5.1.2"
+	set CurrentAppVersion to "4.5.1.3"
 	
-	do shell script "open " & POSIX path of (path to me) & quoted form of ("Contents/Resources/MusiNotify Updater.app")
 end try
 try
 	if not CheckPrefFile() then FirstPrefSetup() -- If the preference fle doesn't exist, then make one and do a first-run setup
@@ -14,45 +13,45 @@ try
 end try
 
 repeat -- Main Loop
-	ReadPrefs() -- Read preference values
+	ReadPrefs() -- Read preference value
 	
 	try
 		tell application "System Events" to set applist to (name of every process whose background only = false) -- See which apps are running
 	end try
-	if applist contains "Spotify" and spotinotify = "1" then
+	if applist contains "Spotify" and spotinotify = "1" then -- If Spotify is running and notifications are enabled...
 		CheckSpotify() -- Check if the song has changed
 	else
-		if RemoveOnQuit = "1" and (count of spotgroups) is not equal to 0 then -- If app isn't running and RemoveOnQuit is set to 1 then...
+		if RemoveOnQuit = "1" and (count of spotgroups) is not equal to 0 then -- If app isn't running, RemoveOnQuit is set to 1, and there are notifications in the sidebar then...
 			repeat with a in spotgroups
 				do shell script quoted form of NPSP & " -remove SP" & a -- Remove notifications
 			end repeat
-			set spotgroups to {} -- Clear
-			do shell script "defaults write com.BenB116.MusiNotify.plist 'SpotifyCurrentGroups' ''"
+			set spotgroups to {} -- Clear the list
+			do shell script "defaults write " & preffile & " 'SpotifyCurrentGroups' ''" -- Clear the list in the preffile
+			set sid to "" -- Reset
 		end if
-		set sid to ""
 	end if
-	if applist contains "iTunes" and itunotify = "1" then
+	if applist contains "iTunes" and itunotify = "1" then -- If iTunes is running and notifications are enabled...
 		CheckiTunes() -- Check if the song has changed
 	else
 		if RemoveOnQuit = "1" and (count of Itungroups) is not equal to 0 then -- If app isn't running and RemoveOnQuit is set to 1 then...
 			repeat with b in Itungroups
 				do shell script quoted form of NPIT & " -remove IT" & b -- Remove notifications
 			end repeat
-			set Itungroups to {} -- Clear
-			do shell script "defaults write com.BenB116.MusiNotify.plist 'iTunesCurrentGroups' ''"
+			set Itungroups to {} -- Clear the list
+			do shell script "defaults write " & preffile & " 'iTunesCurrentGroups' ''" -- Clear the list in the preffile
+			set iid to "" -- Reset
 		end if
-		set iid to ""
 	end if
-	delay 0.01
+	delay 0.1 -- Delay to reduce CPU usage
 end repeat
 
 on CheckSystemVersion()
 	try
 		set vers to (do shell script "sw_vers -productVersion") -- Get Version of OS X
 		set pte to (do shell script "echo " & vers & " | cut -d '.' -f 1-2")
-		if pte is not equal to "10.8" and pte is not equal to "10.9" then
-			display dialog "Sorry. This app requires OSX 10.8+" buttons ("OK") with icon (path to resource "applet.icns")
-			KillMusiNotify()
+		if pte is not equal to "10.8" and pte is not equal to "10.9" then -- If user is not running 10.8 or 10.9...
+			display dialog "Sorry. This app requires OSX 10.8+" buttons ("OK") with icon (path to resource "applet.icns") -- Display explanation
+			KillMusiNotify() -- Quit
 		end if
 	on error msg
 		display dialog "CheckSystemVersion - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
@@ -88,7 +87,7 @@ on FirstPrefSetup()
 		do shell script "defaults write " & preffile & " 'iTuNotify' '1'"
 		
 		do shell script "defaults write " & preffile & " 'login' '0'"
-		set ans to button returned of (display dialog "Would you like to set this app as a login item?" buttons {"No", "Yes"} default button 2 with title "MusiNotify" with icon (path to resource "applet.icns"))
+		set ans to button returned of (display dialog "Would you like to set this app as a login item?" buttons {"No", "Yes"} default button 2 with title "MusiNotify" with icon (path to resource "applet.icns")) -- Ask whether to set a login item
 		if ans = "Yes" then
 			do shell script "defaults write " & preffile & " 'login' '1'"
 			set mypath to (POSIX path of (path to me))
@@ -100,13 +99,14 @@ on FirstPrefSetup()
 		do shell script "defaults write " & preffile & " 'RemoveOnQuit' '1'"
 		
 		try
-			iTunes11dot1()
+			iTunes11dot1() -- Check if running iTunes 11.1
 		end try
 		
 		try
 			set prefreso to (POSIX path of (path to me) & "Contents/Resources/MusiNotify Preferences.scpt")
 			do shell script "cp " & prefreso & " ~/Library/Scripts/" -- Install the preference script
 		end try
+		
 		-- Run the notifiers to reset their icons
 		try
 			do shell script quoted form of ((POSIX path of (path to me)) & "Contents/Resources/MusiNotify - iTunes.app/Contents/MacOS/MusiNotify - iTunes")
@@ -115,7 +115,8 @@ on FirstPrefSetup()
 			do shell script quoted form of ((POSIX path of (path to me)) & "Contents/Resources/MusiNotify - Spotify.app/Contents/MacOS/MusiNotify - Spotify")
 		end try
 		
-		display dialog "You're all set! Play a song in iTunes or Spotify to test it out." buttons {"Awesome!"} default button 1 with title "MusiNotify" with icon (path to resource "applet.icns") giving up after 5
+		
+		display dialog "You're all set! Play a song in iTunes or Spotify to test it out." buttons {"Awesome!"} default button 1 with title "MusiNotify" with icon (path to resource "applet.icns") giving up after 5 -- Finish message
 		
 	on error msg
 		display dialog "FirstPrefSetup - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
@@ -125,9 +126,7 @@ end FirstPrefSetup
 
 on InitialSetup()
 	try
-		do shell script "defaults write " & preffile & " 'loginPath' '" & (POSIX path of (path to me)) & "'" -- Update login path
-	end try
-	try
+		-- Define variables
 		set sid to ""
 		set iid to ""
 		set x to 0
@@ -149,8 +148,6 @@ on InitialSetup()
 			set spotgroups to {}
 		end try
 		
-		log spotgroups
-		
 		try
 			set previousitungroups to do shell script "defaults read " & preffile & " 'iTunesCurrentGroups'"
 			set newgrop to paragraphs 2 thru -2 of previousitungroups as list
@@ -166,11 +163,11 @@ on InitialSetup()
 		end try
 		
 		try
-			iTunes11dot1()
+			iTunes11dot1() -- Check for iTunes 11.1
 		end try
 		
 		try
-			do shell script "defaults write " & preffile & " 'CurrentAppVersion' '" & CurrentAppVersion & "'"
+			do shell script "defaults write " & preffile & " 'CurrentAppVersion' '" & CurrentAppVersion & "'" -- Update preffile
 		end try
 	on error msg
 		display dialog "InitialSetup - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
@@ -180,6 +177,7 @@ end InitialSetup
 
 on ReadPrefs()
 	try
+		-- Read current preference values from preffile
 		set spotinotify to (do shell script "defaults read " & preffile & " 'SpotiNotify'")
 		set itunotify to (do shell script "defaults read " & preffile & " 'iTuNotify'")
 		set DispArt to (do shell script "defaults read " & preffile & " 'DispArt'")
@@ -202,9 +200,9 @@ on CheckSpotify()
 			set tid to id of current track
 		end tell
 		if talb does not contain "http" and talb does not contain "spotify:" then -- If the track is not an ad...
-			set thanked to false
 			if tid is not equal to sid then -- If track has changed...
 				try
+					-- Format artist and album					
 					set sart to " "
 					if DispArt = "1" and tart is not equal to "" then set sart to "By " & tart
 					set salb to " "
@@ -224,6 +222,7 @@ on CheckSpotify()
 						do shell script quoted form of NPSP & " -remove SP0"
 					end if
 					
+					
 					set Formspotgroups to ""
 					repeat with z in spotgroups
 						set Formspotgroups to Formspotgroups & ((z as text) & ", ")
@@ -233,49 +232,40 @@ on CheckSpotify()
 					set sid to tid
 				end try
 			end if
-		else
-			try
-				if thanked is false then
-					do shell script quoted form of NPSP & " -title " & (quoted form of "Thanks for using MusiNotify!") & " -subtitle " & (quoted form of "You're awesome!") & " -message \"\" -group TH -open " & quoted form of ("https://github.com/benb116/MusiNotify")
-					set thanked to true
-					do shell script quoted form of NPSP & " -remove TH"
-				end if
-			end try
 		end if
 	end try
 end CheckSpotify
 
 on SpotDet()
 	try
-		if NumOfNot = "0" then
+		if NumOfNot = "0" then -- If the user does not want notifications in the sidebar...
 			return 0
 		else
-			log spotgroups
-			if (count of spotgroups) = NumOfNot as integer then -- If full
-				set x to last item of spotgroups
+			if (count of spotgroups) = NumOfNot as integer then -- If sidebar is "full"
+				set x to last item of spotgroups -- Use the oldest group
 				try
 					set spotgroups to (items 1 thru -2 of spotgroups)
 				on error
 					set spotgroups to {}
 				end try
-			else if (count of spotgroups) < NumOfNot as integer then -- If not full
+			else if (count of spotgroups) < NumOfNot as integer then -- If sidebar is not "full"
 				repeat
 					set x to x + 1
-					if spotgroups does not contain x then exit repeat
+					if spotgroups does not contain x then exit repeat -- make a new group
 				end repeat
-			else if (count of spotgroups) > NumOfNot as integer then -- If over-filled
+			else if (count of spotgroups) > NumOfNot as integer then -- If sidebar is "over-filled"
 				repeat with a from NumOfNot + 1 to (count of spotgroups)
 					do shell script quoted form of NPSP & " -remove SP" & (item a of spotgroups)
 				end repeat
 				set spotgroups to (items 1 thru NumOfNot of spotgroups)
-				set x to last item of spotgroups
+				set x to last item of spotgroups -- Use the oldest group
 				try
 					set spotgroups to (items 1 thru -2 of spotgroups)
 				on error
 					set spotgroups to {}
 				end try
 			end if
-			set beginning of spotgroups to x
+			set beginning of spotgroups to x -- Update group list
 			
 			return (first item of spotgroups) as integer
 		end if
@@ -296,6 +286,7 @@ on CheckiTunes()
 		end tell
 		if tid is not equal to iid then -- If track has changed...
 			try
+				-- Format artist and album
 				set iart to " "
 				if DispArt = "1" and tart is not equal to "" then set iart to "By " & tart
 				set ialb to " "
@@ -375,8 +366,8 @@ end ItunDet
 on KillMusiNotify()
 	try -- Kill MusiNotify
 		tell application "System Events"
-			set theID to (unix id of processes whose name is "MusiNotify")
-			do shell script "kill -9 " & theID
+			set theID to (unix id of processes whose name is "MusiNotify") -- Find process ID
+			do shell script "kill -9 " & theID -- Kill
 		end tell
 	end try
 end KillMusiNotify
@@ -384,21 +375,21 @@ end KillMusiNotify
 on iTunes11dot1()
 	try -- Check current iTunes version
 		try
-			set asked to (do shell script "defaults read " & preffile & " '11.1_Ask'")
+			set asked to (do shell script "defaults read " & preffile & " '11.1_Ask'") -- Has the user been asked before?
 		on error
 			set asked to "0"
 		end try
 		if asked is not equal to "1" then
-			set currentiTunesversion to (do shell script "defaults read /Applications/iTunes.app/Contents/Info.plist 'CFBundleShortVersionString'")
+			set currentiTunesversion to (do shell script "defaults read /Applications/iTunes.app/Contents/Info.plist 'CFBundleShortVersionString'") -- Determine current iTunes version
 			if currentiTunesversion contains "11.1" then -- Version 11.1 has built-in notifications
 				set iTuneschoice to button returned of (display dialog Â
 					"Hi there, it looks like you're using iTunes 11.1. " & return & return & Â
 					"This version of iTunes has notifications built in, so you don't NEED to use MusiNotify. However, MusiNotify is much more customizable and (in the opinion of the developer) better." & return & return & Â
-					"Would you like to use MusiNotify for iTunes?" buttons {"Don't use MusiNotify for iTunes", "Use MusiNotify for iTunes"} default button 2)
+					"Would you like to use MusiNotify for iTunes?" buttons {"Don't use MusiNotify for iTunes", "Use MusiNotify for iTunes"} default button 2 with icon (path to resource "applet.icns")) -- Display message
 				if iTuneschoice = "Don't use MusiNotify for iTunes" then
-					do shell script "defaults write " & preffile & " 'iTuNotify' '0'"
+					do shell script "defaults write " & preffile & " 'iTuNotify' '0'" -- Record choice
 				end if
-				do shell script "defaults write " & preffile & " '11.1_Ask' '1'"
+				do shell script "defaults write " & preffile & " '11.1_Ask' '1'" -- Record that the user was asked
 			end if
 		end if
 	end try

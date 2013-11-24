@@ -64,7 +64,7 @@ on loginitem()
 	
 	if button returned of q2 is "Yes" and logit = "0" then
 		set apppath to (do shell script "defaults read " & preffile & " 'loginPath'")
-		tell application "System Events" to make login item at end with properties {path:mypath} -- Add to login items	
+		tell application "System Events" to make login item at end with properties {path:apppath} -- Add to login items	
 		changepref("login", "1")
 		
 	else if button returned of q2 is "No" and logit = "1" then

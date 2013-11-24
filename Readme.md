@@ -6,7 +6,7 @@ This is a plugin for Mac OS X 10.8 and up. It displays notifications using two v
 Mac OS X 10.8 or higher is required.
 <br>
 ###How does it work?
-MusiNotify continually checks to see if either iTunes or Spotify are running. If either is, MusiNotify will get the name, artist, album, and id of the current track. If the id changes, MusiNotify will display a notification with the app's icon. Pretty simple!
+MusiNotify continually checks to see if either iTunes or Spotify is running. If either is, MusiNotify will get the name, artist, album, and id of the current track. If the id changes, MusiNotify will display a notification with the app's icon. Pretty simple!
 
 So why does the app have almost 400 LOC? 
 
