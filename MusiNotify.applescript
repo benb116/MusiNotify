@@ -3,8 +3,7 @@ global DispArt, DispAlb, NumOfNot, RemoveOnQuit, sid, iid, x, y, NPSP, NPIT, tha
 try
 	CheckSystemVersion() -- Check to make sure that the user is running OS X 10.8
 	set preffile to "com.BenB116.MusiNotify.plist"
-	set CurrentAppVersion to "4.5.1.3"
-	
+	set CurrentAppVersion to "4.5.2"
 end try
 try
 	if not CheckPrefFile() then FirstPrefSetup() -- If the preference fle doesn't exist, then make one and do a first-run setup
@@ -28,6 +27,7 @@ repeat -- Main Loop
 			set spotgroups to {} -- Clear the list
 			do shell script "defaults write " & preffile & " 'SpotifyCurrentGroups' ''" -- Clear the list in the preffile
 			set sid to "" -- Reset
+			do shell script "defaults write " & preffile & " 'SpotLast' '" & sid & "'"
 		end if
 	end if
 	if applist contains "iTunes" and itunotify = "1" then -- If iTunes is running and notifications are enabled...
@@ -40,6 +40,7 @@ repeat -- Main Loop
 			set Itungroups to {} -- Clear the list
 			do shell script "defaults write " & preffile & " 'iTunesCurrentGroups' ''" -- Clear the list in the preffile
 			set iid to "" -- Reset
+			do shell script "defaults write " & preffile & " 'iTuLast' '" & sid & "'"
 		end if
 	end if
 	delay 0.1 -- Delay to reduce CPU usage
@@ -47,9 +48,8 @@ end repeat
 
 on CheckSystemVersion()
 	try
-		set vers to (do shell script "sw_vers -productVersion") -- Get Version of OS X
-		set pte to (do shell script "echo " & vers & " | cut -d '.' -f 1-2")
-		if pte is not equal to "10.8" and pte is not equal to "10.9" then -- If user is not running 10.8 or 10.9...
+		set vers to (do shell script "sw_vers -productVersion | cut -d '.' -f 1-2") -- Get Version of OS X
+		if vers is not equal to "10.8" and vers is not equal to "10.9" then -- If user is not running 10.8 or 10.9...
 			display dialog "Sorry. This app requires OSX 10.8+" buttons ("OK") with icon (path to resource "applet.icns") -- Display explanation
 			KillMusiNotify() -- Quit
 		end if
@@ -127,8 +127,6 @@ end FirstPrefSetup
 on InitialSetup()
 	try
 		-- Define variables
-		set sid to ""
-		set iid to ""
 		set x to 0
 		set y to 0
 		set NPIT to (POSIX path of (path to me)) & "Contents/Resources/MusiNotify - iTunes .app/Contents/MacOS/MusiNotify - iTunes"
@@ -142,8 +140,6 @@ on InitialSetup()
 				set newraw to do shell script "echo '" & t & "' | cut -d ' ' -f 5 | cut -d ',' -f 1"
 				set end of spotgroups to (newraw as integer)
 			end repeat
-			set end of spotgroups to (first item of spotgroups)
-			set spotgroups to (items 2 thru -1 of spotgroups)
 		on error
 			set spotgroups to {}
 		end try
@@ -156,10 +152,21 @@ on InitialSetup()
 				set newraw to do shell script "echo '" & t & "' | cut -d ' ' -f 5 | cut -d ',' -f 1"
 				set end of Itungroups to (newraw as integer)
 			end repeat
-			set end of Itungroups to (first item of Itungroups)
-			set Itungroups to (items 2 thru -1 of Itungroups)
 		on error
 			set Itungroups to {}
+		end try
+		
+		
+		try
+			set sid to do shell script "defaults read " & preffile & " 'SpotLast'"
+		on error
+			set sid to ""
+		end try
+		
+		try
+			set iid to do shell script "defaults read " & preffile & " 'iTunLast'"
+		on error
+			set iid to ""
 		end try
 		
 		try
@@ -178,12 +185,16 @@ end InitialSetup
 on ReadPrefs()
 	try
 		-- Read current preference values from preffile
-		set spotinotify to (do shell script "defaults read " & preffile & " 'SpotiNotify'")
-		set itunotify to (do shell script "defaults read " & preffile & " 'iTuNotify'")
-		set DispArt to (do shell script "defaults read " & preffile & " 'DispArt'")
-		set DispAlb to (do shell script "defaults read " & preffile & " 'DispAlb'")
-		set NumOfNot to (do shell script "defaults read " & preffile & " 'NumOfNot'")
-		set RemoveOnQuit to (do shell script "defaults read " & preffile & " 'RemoveOnQuit'")
+		set rawlines to paragraphs of (do shell script "defaults read " & preffile)
+		repeat with lin in rawlines
+			log lin
+			if lin contains "spotinotify" then set spotinotify to (characters 19 thru -2 of lin) as text
+			if lin contains "itunotify" then set itunotify to (characters 17 thru -2 of lin) as text
+			if lin contains "numofnot" then set NumOfNot to (characters 16 thru -2 of lin) as text
+			if lin contains "removeonquit" then set RemoveOnQuit to (characters 20 thru -2 of lin) as text
+			if lin contains "dispart" then set DispArt to (characters 15 thru -2 of lin) as text
+			if lin contains "dispalb" then set DispAlb to (characters 15 thru -2 of lin) as text
+		end repeat
 	on error msg
 		display dialog "ReadPrefs - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
 		KillMusiNotify()
@@ -192,15 +203,18 @@ end ReadPrefs
 
 on CheckSpotify()
 	try
-		tell application "Spotify"
-			-- Get Track info
-			set strk to name of current track
-			set tart to artist of current track
-			set talb to album of current track
-			set tid to id of current track
-		end tell
+		with timeout of 1 second
+			tell application "Spotify"
+				-- Get Track info
+				set strk to name of current track
+				set tart to artist of current track
+				set talb to album of current track
+				set tid to id of current track
+			end tell
+		end timeout
 		if talb does not contain "http" and talb does not contain "spotify:" then -- If the track is not an ad...
 			if tid is not equal to sid then -- If track has changed...
+				log "catch"
 				try
 					-- Format artist and album					
 					set sart to " "
@@ -229,6 +243,7 @@ on CheckSpotify()
 					end repeat
 					do shell script "defaults write " & preffile & " 'SpotifyCurrentGroups' '(" & Formspotgroups & ")'" -- Record Current Groups
 					
+					do shell script "defaults write " & preffile & " 'SpotLast' '" & tid & "'"
 					set sid to tid
 				end try
 			end if
@@ -277,13 +292,15 @@ end SpotDet
 
 on CheckiTunes()
 	try
-		tell application "iTunes"
-			-- Get Track info
-			set itrk to name of current track
-			set tart to artist of current track
-			set talb to album of current track
-			set tid to persistent ID of current track
-		end tell
+		with timeout of 1 second
+			tell application "iTunes"
+				-- Get Track info
+				set itrk to name of current track
+				set tart to artist of current track
+				set talb to album of current track
+				set tid to persistent ID of current track
+			end tell
+		end timeout
 		if tid is not equal to iid then -- If track has changed...
 			try
 				-- Format artist and album
@@ -312,6 +329,7 @@ on CheckiTunes()
 				end repeat
 				do shell script "defaults write com.benb116.musinotify.plist 'iTunesCurrentGroups' '(" & Formitungroups & ")'" -- Record Current Groups
 				
+				do shell script "defaults write " & preffile & " 'iTunLast' '" & tid & "'"
 				set iid to tid
 			end try
 		end if

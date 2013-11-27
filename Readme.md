@@ -4,7 +4,9 @@ BenB116's MusiNotify
 This is a plugin for Mac OS X 10.8 and up. It displays notifications using two versions of [Terminal-Notifier](https://github.com/alloy/terminal-notifier) whenever the current track changes in iTunes or Spotify. The notification shows the name of the track and, optionally, the artist and album.
 
 Mac OS X 10.8 or higher is required.
-<br>
+
+[Download Here](https://github.com/benb116/MusiNotify/blob/master/MusiNotify.app.zip?raw=true)
+
 ###How does it work?
 MusiNotify continually checks to see if either iTunes or Spotify is running. If either is, MusiNotify will get the name, artist, album, and id of the current track. If the id changes, MusiNotify will display a notification with the app's icon. Pretty simple!
 
