@@ -1,5 +1,3 @@
-4.5.2
+4.5.2.1
 New Features
-- Speed improvements
-- Records last song ID for startup
-- Cleanup and bug fixes
+- Added Auto-Updating that was forgotten in 4.5.2

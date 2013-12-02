@@ -3,7 +3,9 @@ global DispArt, DispAlb, NumOfNot, RemoveOnQuit, sid, iid, x, y, NPSP, NPIT, tha
 try
 	CheckSystemVersion() -- Check to make sure that the user is running OS X 10.8
 	set preffile to "com.BenB116.MusiNotify.plist"
-	set CurrentAppVersion to "4.5.2"
+	set CurrentAppVersion to "4.5.2.1"
+	
+	do shell script "open " & POSIX path of (path to me) & quoted form of ("Contents/Resources/MusiNotify Updater.app")
 end try
 try
 	if not CheckPrefFile() then FirstPrefSetup() -- If the preference fle doesn't exist, then make one and do a first-run setup
