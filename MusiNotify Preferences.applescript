@@ -53,8 +53,12 @@ on loginitem()
 		"Would you like MusiNotify to start on login?" with title "MusiNotify Preferences" buttons {"Cancel", "Yes", "No"})
 	
 	if button returned of q2 is "Yes" and logit = "0" then
-		set apppath to (do shell script "defaults read " & preffile & " 'loginPath'")
-		tell application "System Events" to make login item at end with properties {path:apppath, kind:application}
+		set linez to paragraphs of (do shell script "ps -ax | grep 'MusiNotify.app'")
+		repeat with lin in linez
+			if lin contains "MusiNotify.app/Contents" then exit repeat
+		end repeat
+		set currentpath to ((do shell script "echo " & lin & " | cut -d ' ' -f 4 | cut -d '.' -f 1") & ".app")
+		tell application "System Events" to make login item at end with properties {path:currentpath}
 		changepref("login", "1")
 		
 	else if button returned of q2 is "No" and logit = "1" then

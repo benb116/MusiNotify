@@ -32,26 +32,27 @@ try
 				repeat with lin in linez
 					if lin contains "MusiNotify.app/Contents" then exit repeat
 				end repeat
-				set currentpath to "/" & (do shell script "echo " & lin & " | cut -d '/' -f 2")
+				set currentpath to (do shell script "echo " & lin & " | cut -d ' ' -f 4 | cut -d '.' -f 1") & ".app"
+				set dirpath to (do shell script "dirname " & currentpath)
 				set pid to (do shell script "echo " & lin & " | cut -d ' ' -f 1")
 				
-				do shell script "cp -rf ~/Library/MusiNotify.app " & currentpath -- Replace the old app
+				do shell script "cp -rf ~/Library/MusiNotify.app " & dirpath -- Replace the old app
 				
-				do shell script "cp -f " & currentpath & "/MusiNotify.app/Contents/Resources/" & quoted form of ("MusiNotify Preferences.scpt") & " ~/Library/Scripts/" -- Copy the new preference file
+				do shell script "cp -f " & currentpath & "/Contents/Resources/" & quoted form of ("MusiNotify Preferences.scpt") & " ~/Library/Scripts/" -- Copy the new preference file
 				
-				display dialog "Update complete. Restart MusiNotify for the changes to take effect." buttons ("OK") default button 1 with icon (path to resource "applet.icns") with title "MusiNotify - Update"
+				do shell script "defaults write " & preffile & " 'CurrentAppVersion' '" & LatestVersion & "'"
 				
 				try
 					do shell script "rm ~/Library/MusiNotify.app.zip; rm -rf ~/Library/__MACOSX; rm -rf ~/Library/MusiNotify.app" -- Get rid of extra files
 				end try
 				
-				do shell script "defaults write " & preffile & " 'CurrentAppVersion' '" & LatestVersion & "'"
+				display dialog "Update complete. Restart MusiNotify for the changes to take effect." buttons ("Restart") default button 1 with icon (path to resource "applet.icns") with title "MusiNotify - Update"
 				
 				do shell script "kill -9 " & pid
 				
 				delay 1
 				
-				do shell script "open " & currentpath & "/MusiNotify.app"
+				do shell script "open " & dirpath & "/MusiNotify.app"
 				
 			on error
 				try

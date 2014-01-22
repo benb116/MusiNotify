@@ -1,3 +1,7 @@
-4.5.2.1
+4.6
 New Features
-- Added Auto-Updating that was forgotten in 4.5.2
+- New notification system with notifications "directly" from apps
+- More efficient loop to reduce CPU usage
+- Bug fixes with auto-updating and with the preference file
+- Better error handling when the pref file gets corrupted
+- Known issue: notifications are removed but extra notifications replace them

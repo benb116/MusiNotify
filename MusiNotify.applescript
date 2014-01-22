@@ -1,9 +1,9 @@
-global DispArt, DispAlb, NumOfNot, RemoveOnQuit, sid, iid, x, y, NPSP, NPIT, thanked, preffile, spotgroups, Itungroups, CurrentAppVersion, spotinotify, itunotify
+global DispArt, DispAlb, NumOfNot, RemoveOnQuit, sid, iid, x, y, Notif, thanked, preffile, spotgroups, Itungroups, CurrentAppVersion, spotinotify, itunotify
 
 try
 	CheckSystemVersion() -- Check to make sure that the user is running OS X 10.8
 	set preffile to "com.BenB116.MusiNotify.plist"
-	set CurrentAppVersion to "4.5.2.1"
+	set CurrentAppVersion to "4.6"
 	
 	do shell script "open " & POSIX path of (path to me) & quoted form of ("Contents/Resources/MusiNotify Updater.app")
 end try
@@ -19,33 +19,37 @@ repeat -- Main Loop
 	try
 		tell application "System Events" to set applist to (name of every process whose background only = false) -- See which apps are running
 	end try
-	if applist contains "Spotify" and spotinotify = "1" then -- If Spotify is running and notifications are enabled...
-		CheckSpotify() -- Check if the song has changed
-	else
-		if RemoveOnQuit = "1" and (count of spotgroups) is not equal to 0 then -- If app isn't running, RemoveOnQuit is set to 1, and there are notifications in the sidebar then...
-			repeat with a in spotgroups
-				do shell script quoted form of NPSP & " -remove SP" & a -- Remove notifications
-			end repeat
-			set spotgroups to {} -- Clear the list
-			do shell script "defaults write " & preffile & " 'SpotifyCurrentGroups' ''" -- Clear the list in the preffile
-			set sid to "" -- Reset
-			do shell script "defaults write " & preffile & " 'SpotLast' '" & sid & "'"
+	if applist contains "Spotify" or applist contains "iTunes" then
+		if applist contains "Spotify" and spotinotify = "1" then -- If Spotify is running and notifications are enabled...
+			CheckSpotify() -- Check if the song has changed
+		else
+			if RemoveOnQuit = "1" and (count of spotgroups) is not equal to 0 then -- If app isn't running, RemoveOnQuit is set to 1, and there are notifications in the sidebar then...
+				repeat with a in spotgroups
+					do shell script quoted form of Notif & " -remove SP" & a -- Remove notifications
+				end repeat
+				set spotgroups to {} -- Clear the list
+				do shell script "defaults write " & preffile & " 'SpotifyCurrentGroups' ''" -- Clear the list in the preffile
+				set sid to "" -- Reset
+				do shell script "defaults write " & preffile & " 'SpotLast' '" & sid & "'"
+			end if
 		end if
-	end if
-	if applist contains "iTunes" and itunotify = "1" then -- If iTunes is running and notifications are enabled...
-		CheckiTunes() -- Check if the song has changed
-	else
-		if RemoveOnQuit = "1" and (count of Itungroups) is not equal to 0 then -- If app isn't running and RemoveOnQuit is set to 1 then...
-			repeat with b in Itungroups
-				do shell script quoted form of NPIT & " -remove IT" & b -- Remove notifications
-			end repeat
-			set Itungroups to {} -- Clear the list
-			do shell script "defaults write " & preffile & " 'iTunesCurrentGroups' ''" -- Clear the list in the preffile
-			set iid to "" -- Reset
-			do shell script "defaults write " & preffile & " 'iTuLast' '" & sid & "'"
+		if applist contains "iTunes" and itunotify = "1" then -- If iTunes is running and notifications are enabled...
+			CheckiTunes() -- Check if the song has changed
+		else
+			if RemoveOnQuit = "1" and (count of Itungroups) is not equal to 0 then -- If app isn't running and RemoveOnQuit is set to 1 then...
+				repeat with b in Itungroups
+					do shell script quoted form of Notif & " -remove IT" & b -- Remove notifications
+				end repeat
+				set Itungroups to {} -- Clear the list
+				do shell script "defaults write " & preffile & " 'iTunesCurrentGroups' ''" -- Clear the list in the preffile
+				set iid to "" -- Reset
+				do shell script "defaults write " & preffile & " 'iTuLast' '" & iid & "'"
+			end if
 		end if
+		delay 0.2
+	else
+		delay 1 -- Delay to reduce CPU usage
 	end if
-	delay 0.1 -- Delay to reduce CPU usage
 end repeat
 
 on CheckSystemVersion()
@@ -105,18 +109,9 @@ on FirstPrefSetup()
 		end try
 		
 		try
-			set prefreso to (POSIX path of (path to me) & "Contents/Resources/MusiNotify Preferences.scpt")
+			set prefreso to quoted form of (POSIX path of (path to me) & "Contents/Resources/MusiNotify Preferences.scpt")
 			do shell script "cp " & prefreso & " ~/Library/Scripts/" -- Install the preference script
 		end try
-		
-		-- Run the notifiers to reset their icons
-		try
-			do shell script quoted form of ((POSIX path of (path to me)) & "Contents/Resources/MusiNotify - iTunes.app/Contents/MacOS/MusiNotify - iTunes")
-		end try
-		try
-			do shell script quoted form of ((POSIX path of (path to me)) & "Contents/Resources/MusiNotify - Spotify.app/Contents/MacOS/MusiNotify - Spotify")
-		end try
-		
 		
 		display dialog "You're all set! Play a song in iTunes or Spotify to test it out." buttons {"Awesome!"} default button 1 with title "MusiNotify" with icon (path to resource "applet.icns") giving up after 5 -- Finish message
 		
@@ -131,33 +126,33 @@ on InitialSetup()
 		-- Define variables
 		set x to 0
 		set y to 0
-		set NPIT to (POSIX path of (path to me)) & "Contents/Resources/MusiNotify - iTunes .app/Contents/MacOS/MusiNotify - iTunes"
-		set NPSP to (POSIX path of (path to me)) & "/Contents/Resources/MusiNotify - Spotify.app/Contents/MacOS/MusiNotify - Spotify"
+		set Notif to (POSIX path of (path to me)) & "/Contents/Resources/terminal-notifier"
 		
 		try
-			set previousspotgroups to do shell script "defaults read " & preffile & " 'SpotifyCurrentGroups'" -- Read Previous Notifications
-			set newgrop to paragraphs 2 thru -2 of previousspotgroups as list
+			set previousspotgroups to do shell script "defaults read " & preffile & " 'SpotifyCurrentGroups'" -- Read previous groups from preffile
+			set newgrop to paragraphs -2 thru 2 of previousspotgroups as list
 			set spotgroups to {}
 			repeat with t in newgrop
 				set newraw to do shell script "echo '" & t & "' | cut -d ' ' -f 5 | cut -d ',' -f 1"
 				set end of spotgroups to (newraw as integer)
 			end repeat
+			set spotgroups to (items 2 thru -1 of spotgroups) -- Format groups and add to list
 		on error
 			set spotgroups to {}
 		end try
 		
 		try
-			set previousitungroups to do shell script "defaults read " & preffile & " 'iTunesCurrentGroups'"
+			set previousitungroups to do shell script "defaults read " & preffile & " 'iTunesCurrentGroups'" -- Read previous groups from preffile
 			set newgrop to paragraphs 2 thru -2 of previousitungroups as list
 			set Itungroups to {}
 			repeat with t in newgrop
 				set newraw to do shell script "echo '" & t & "' | cut -d ' ' -f 5 | cut -d ',' -f 1"
 				set end of Itungroups to (newraw as integer)
 			end repeat
+			set Itungroups to (items 2 thru -1 of Itungroups) -- Format groups and add to list
 		on error
 			set Itungroups to {}
 		end try
-		
 		
 		try
 			set sid to do shell script "defaults read " & preffile & " 'SpotLast'"
@@ -189,7 +184,6 @@ on ReadPrefs()
 		-- Read current preference values from preffile
 		set rawlines to paragraphs of (do shell script "defaults read " & preffile)
 		repeat with lin in rawlines
-			log lin
 			if lin contains "spotinotify" then set spotinotify to (characters 19 thru -2 of lin) as text
 			if lin contains "itunotify" then set itunotify to (characters 17 thru -2 of lin) as text
 			if lin contains "numofnot" then set NumOfNot to (characters 16 thru -2 of lin) as text
@@ -198,8 +192,20 @@ on ReadPrefs()
 			if lin contains "dispalb" then set DispAlb to (characters 15 thru -2 of lin) as text
 		end repeat
 	on error msg
-		display dialog "ReadPrefs - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
-		KillMusiNotify()
+		try
+			display dialog "It looks like something's wrong with your preference file. Click \"Reset\" to reset it." buttons {"Quit", "Reset Preferences"} default button 2 with title "Error - MusiNotify" with icon (path to resource "applet.icns")
+			if button returned of result is "Reset Preferences" then
+				try
+					do shell script "rm ~/Library/Preferences/" & preffile
+				end try
+				FirstPrefSetup()
+			else
+				KillMusiNotify()
+			end if
+		on error
+			display dialog "ReadPrefs - " & msg with title "Error - MusiNotify" with icon (path to resource "applet.icns")
+			KillMusiNotify()
+		end try
 	end try
 end ReadPrefs
 
@@ -216,7 +222,6 @@ on CheckSpotify()
 		end timeout
 		if talb does not contain "http" and talb does not contain "spotify:" then -- If the track is not an ad...
 			if tid is not equal to sid then -- If track has changed...
-				log "catch"
 				try
 					-- Format artist and album					
 					set sart to " "
@@ -227,17 +232,17 @@ on CheckSpotify()
 					set theID to SpotDet() -- Get the ID
 					set xid to "-group SP" & theID as text
 					
-					do shell script quoted form of NPSP & " -title " & (quoted form of strk) & " -subtitle " & (quoted form of sart) & " -message " & (quoted form of salb) & " " & xid & " -execute 'open /Applications/Spotify.app'" -- Display the notification
-					if NumOfNot = "0" then
+					do shell script quoted form of Notif & " -title " & (quoted form of strk) & " -subtitle " & (quoted form of sart) & " -message " & (quoted form of salb) & " -sender 'com.Spotify.client' " & xid & " -activate com.Spotify.client" -- Display the notification
+					
+					if NumOfNot = "0" then -- If the user does not want notifications in the sidebar...
 						try
 							repeat with a in spotgroups
-								do shell script quoted form of NPSP & " -remove SP" & a -- Remove notifications
+								do shell script quoted form of Notif & " -sender 'com.spotify.client' -remove SP" & a -- Remove previous notifications
 							end repeat
-							set spotgroups to {} -- Clear
+							set spotgroups to {} -- Clear list
 						end try
-						do shell script quoted form of NPSP & " -remove SP0"
+						do shell script quoted form of Notif & " -sender 'com.spotify.client' -remove SP0" -- Remove last notification
 					end if
-					
 					
 					set Formspotgroups to ""
 					repeat with z in spotgroups
@@ -272,7 +277,7 @@ on SpotDet()
 				end repeat
 			else if (count of spotgroups) > NumOfNot as integer then -- If sidebar is "over-filled"
 				repeat with a from NumOfNot + 1 to (count of spotgroups)
-					do shell script quoted form of NPSP & " -remove SP" & (item a of spotgroups)
+					do shell script Notif & " -sender 'com.spotify.client' -remove SP" & (item a of spotgroups) -- Remove extra notifications
 				end repeat
 				set spotgroups to (items 1 thru NumOfNot of spotgroups)
 				set x to last item of spotgroups -- Use the oldest group
@@ -314,15 +319,16 @@ on CheckiTunes()
 				set theID to ItunDet() -- Get the ID
 				set yid to "-group IT" & theID as text
 				
-				do shell script quoted form of NPIT & " -title " & (quoted form of itrk) & " -subtitle " & (quoted form of iart) & " -message " & (quoted form of ialb) & " " & yid & " -execute 'open /Applications/iTunes.app'" -- Display the notification
-				if NumOfNot = "0" then
+				do shell script quoted form of Notif & " -title " & (quoted form of itrk) & " -subtitle " & (quoted form of iart) & " -message " & (quoted form of ialb) & " -sender 'com.apple.iTunes' " & yid & " -activate com.apple.iTunes" -- Display the notification
+				
+				if NumOfNot = "0" then -- If the user does not want notifications in the sidebar...
 					try
 						repeat with b in Itungroups
-							do shell script quoted form of NPIT & " -remove IT" & b -- Remove notifications
+							do shell script quoted form of Notif & " -sender 'com.apple.iTunes' -remove IT" & b -- Remove previous notifications
 						end repeat
-						set Itungroups to {} -- Clear
+						set Itungroups to {} -- Clear list
 					end try
-					do shell script quoted form of NPIT & " -remove IT0"
+					do shell script quoted form of Notif & " -sender 'com.apple.iTunes' -remove IT0" -- Remove last notification
 				end if
 				
 				set Formitungroups to ""
@@ -358,7 +364,7 @@ on ItunDet()
 				end repeat
 			else if (count of Itungroups) > NumOfNot as integer then
 				repeat with b from NumOfNot + 1 to (count of Itungroups)
-					do shell script quoted form of NPIT & " -remove IT" & (item b of Itungroups)
+					do shell script quoted form of Notif & " -sender 'com.apple.iTunes' -remove IT" & (item b of Itungroups)
 				end repeat
 				set Itungroups to (items 1 thru NumOfNot of Itungroups)
 				set y to last item of Itungroups
