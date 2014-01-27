@@ -11,7 +11,7 @@ set q0 to (choose from list {isiTunEnab & " iTunes Notifications", isSpotEnab & 
 	with prompt Â
 	"Which preferences would you like to change?" with title "MusiNotify Preferences" with multiple selections allowed)
 if q0 contains isiTunEnab & " iTunes Notifications" then EnDisiTunes()
-if q0 contains isSpotEnab & " Spotify Notifications" then EnDisSpotify
+if q0 contains isSpotEnab & " Spotify Notifications" then EnDisSpotify()
 if q0 contains "Customize MusiNotify" then
 	set q1 to (choose from list {"Login Item", "Display Artist Name", "Display Album Name", "Number of Notifications in Sidebar", "Clear Notifications on Quit"} Â
 		with prompt Â

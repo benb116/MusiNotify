@@ -1,7 +1,7 @@
 BenB116's MusiNotify
 ======
 
-This is a plugin for Mac OS X 10.8 and up. It displays notifications using two versions of [Terminal-Notifier](https://github.com/alloy/terminal-notifier) whenever the current track changes in iTunes or Spotify. The notification shows the name of the track and, optionally, the artist and album.
+This is a plugin for Mac OS X 10.8 and up. It displays notifications using [Terminal-Notifier](https://github.com/alloy/terminal-notifier) whenever the current track changes in iTunes or Spotify. The notification shows the name of the track and, optionally, the artist and album.
 
 Mac OS X 10.8 or higher is required.
 
@@ -17,7 +17,7 @@ So why does the app have almost 400 LOC?
 3.	It has a .plist file to keep track of the preferences
 3.	It keeps track of notification ID's, which is a complex task when the number of notifications in the sidebar has virtually no limit and can change at a moment's notice
 4.	It adds and removes specific notifications to maintain the user's desired settings
-4.	It does all this for iTunes and Spotify
+4.	It does all this for both iTunes and Spotify
 
 ###Current Features
 * Optionally display the artist and/or album
@@ -41,6 +41,6 @@ Spotify Notification with Album
 <br>
 iTunes Notification with Album
 
-![image](http://f.cl.ly/items/1S2w2U0y0X383Z342J37/Sidebar.png)
+![image](http://cl.ly/TVrm/Screenshot%202014-01-22%2010.15.05.jpg)
 <br>
 Sidebar with notifications from iTunes and Spotify
