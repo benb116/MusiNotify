@@ -1,30 +1,51 @@
-global preffile, spotinotify, itunotify
+global preffile, spotinotify, itunotify, isloginitem, dispart, dispalb, numofnot, removeonquit, autoupdate
 set preffile to "com.BenB116.MusiNotify.plist"
 
-set isSpotEnab to "Enable"
-set isiTunEnab to "Enable"
-set spotinotify to (do shell script "defaults read " & preffile & " 'SpotiNotify'")
-set itunotify to (do shell script "defaults read " & preffile & " 'iTuNotify'")
-if spotinotify = "1" then set isSpotEnab to "Disable"
-if itunotify = "1" then set isiTunEnab to "Disable"
-set q0 to (choose from list {isiTunEnab & " iTunes Notifications", isSpotEnab & " Spotify Notifications", "Customize MusiNotify"} Â
-	with prompt Â
-	"Which preferences would you like to change?" with title "MusiNotify Preferences" with multiple selections allowed)
-if q0 contains isiTunEnab & " iTunes Notifications" then EnDisiTunes()
-if q0 contains isSpotEnab & " Spotify Notifications" then EnDisSpotify()
-if q0 contains "Customize MusiNotify" then
-	set q1 to (choose from list {"Login Item", "Display Artist Name", "Display Album Name", "Number of Notifications in Sidebar", "Clear Notifications on Quit"} Â
-		with prompt Â
-		"Which preferences would you like to change?" with title "MusiNotify Preferences" with multiple selections allowed)
-	
-	if q1 contains "Login Item" then loginitem()
-	if q1 contains "Display Artist Name" then DispArt()
-	if q1 contains "Display Album Name" then DispAlb()
-	if q1 contains "Number of Notifications in Sidebar" then NumOfNot()
-	if q1 contains "Clear Notifications on Quit" then RemoveOnQuit()
-end if
-display dialog "Preferences saved." buttons ("OK") default button 1 with title "MusiNotify Preferences"
+set rawlines to paragraphs of (do shell script "defaults read " & preffile)
+repeat with lin in rawlines
+	if lin contains "spotinotify" then set spotinotify to (characters 19 thru -2 of lin) as text
+	if lin contains "itunotify" then set itunotify to (characters 17 thru -2 of lin) as text
+	if lin contains "numofnot" then set numofnot to (characters 16 thru -2 of lin) as text
+	if lin contains "removeonquit" then set removeonquit to (characters 20 thru -2 of lin) as text
+	if lin contains "dispart" then set dispart to (characters 15 thru -2 of lin) as text
+	if lin contains "dispalb" then set dispalb to (characters 15 thru -2 of lin) as text
+	if lin contains "autoUpdate" then set autoupdate to (characters 18 thru -2 of lin) as text
+end repeat
+tell application "System Events" to set listoflogin to (name of every login item) as list
 
+if listoflogin does not contain "MusiNotify" then set isloginitem to "Add "
+if listoflogin contains "MusiNotify" then set isloginitem to "Remove "
+if spotinotify = "1" then set isSpotEnab to "Disable "
+if spotinotify = "0" then set isSpotEnab to "Enable "
+if itunotify = "1" then set isiTunEnab to "Disable "
+if itunotify = "0" then set isiTunEnab to "Enable "
+if dispart = "1" then set isart to "Don't "
+if dispart = "0" then set isart to ""
+if dispalb = "1" then set isalb to "Don't "
+if dispalb = "0" then set isalb to ""
+if removeonquit = "1" then set isclearquit to "Don't "
+if removeonquit = "0" then set isclearquit to ""
+if autoupdate = "1" then set isautoupdate to "Don't "
+if autoupdate = "0" then set isautoupdate to ""
+
+set q1 to (choose from list {isiTunEnab & "iTunes Notifications", isSpotEnab & "Spotify Notifications", isloginitem & "Login Item", isart & "Display Artist Name", isalb & "Display Album Name", "Number of Notifications in Sidebar", isclearquit & "Clear Notifications on Quit", isautoupdate & "Auto-Update"} Â
+	with prompt "Which preferences would you like to change?" with title "MusiNotify Preferences" with multiple selections allowed)
+
+try
+	repeat with pref in q1
+		if pref contains "iTunes Notifications" then EnDisiTunes()
+		if pref contains "Spotify Notifications" then EnDisSpotify()
+		if pref contains "Login Item" then loginitem()
+		if pref contains "Display Artist Name" then changedispart()
+		if pref contains "Display Album Name" then changedispalb()
+		if pref contains "Number of Notifications in Sidebar" then changenumofnot()
+		if pref contains "Clear Notifications on Quit" then changeremoveonquit()
+		if pref contains "Auto-Update" then changeautoupdate()
+	end repeat
+	display dialog "Success!"
+on error msg
+	display dialog "Error: " & msg
+end try
 on changepref(pref, num)
 	do shell script "defaults write " & preffile & " '" & pref & "' '" & num & "'"
 end changepref
@@ -40,67 +61,33 @@ on EnDisSpotify()
 end EnDisSpotify
 
 on loginitem()
-	set logit to (do shell script "defaults read " & preffile & " 'login'")
-	
-	tell application "System Events" to set listoflogin to (name of every login item) as list
-	if listoflogin does not contain "MusiNotify" then set logit to "0"
-	if listoflogin contains "MusiNotify" then set logit to "1"
-	
-	if logit = "1" then set loginenabled to "is"
-	if logit = "0" then set loginenabled to "is not"
-	
-	set q2 to (display dialog "MusiNotify currently " & loginenabled & " a login item." & return & return & Â
-		"Would you like MusiNotify to start on login?" with title "MusiNotify Preferences" buttons {"Cancel", "Yes", "No"})
-	
-	if button returned of q2 is "Yes" and logit = "0" then
+	if isloginitem = "Add " then
 		set linez to paragraphs of (do shell script "ps -ax | grep 'MusiNotify.app'")
 		repeat with lin in linez
 			if lin contains "MusiNotify.app/Contents" then exit repeat
 		end repeat
 		set currentpath to ((do shell script "echo " & lin & " | cut -d ' ' -f 4 | cut -d '.' -f 1") & ".app")
 		tell application "System Events" to make login item at end with properties {path:currentpath}
-		changepref("login", "1")
-		
-	else if button returned of q2 is "No" and logit = "1" then
+	else
 		tell application "System Events" to delete login item "MusiNotify"
-		changepref("login", "0")
 	end if
 end loginitem
 
-on DispArt()
-	set Art to (do shell script "defaults read " & preffile & " 'DispArt'")
-	if Art = "1" then set artenabled to "displays"
-	if Art = "0" then set artenabled to "does not display"
-	set q3 to (display dialog "MusiNotify currently " & artenabled & " the artist in notifications." & return & return & Â
-		"Would you like MusiNotify to display the artist?" with title "MusiNotify Preferences" buttons {"Cancel", "Yes", "No"})
-	
-	if button returned of q3 is "Yes" and Art = "0" then
-		changepref("DispArt", "1")
-	else if button returned of q3 is "No" and Art = "1" then
-		changepref("DispArt", "0")
-	end if
-end DispArt
+on changedispart()
+	if dispart = "0" then changepref("DispArt", "1")
+	if dispart = "1" then changepref("DispArt", "0")
+end changedispart
 
-on DispAlb()
-	set Alb to (do shell script "defaults read " & preffile & " 'DispAlb'")
-	if Alb = "1" then set Albenabled to "displays"
-	if Alb = "0" then set Albenabled to "does not display"
-	set q4 to (display dialog "MusiNotify currently " & Albenabled & " the album in notifications." & return & return & Â
-		"Would you like MusiNotify to display the album?" with title "MusiNotify Preferences" buttons {"Cancel", "Yes", "No"})
-	
-	if button returned of q4 is "Yes" and Alb = "0" then
-		changepref("DispAlb", "1")
-	else if button returned of q4 is "No" and Alb = "1" then
-		changepref("DispAlb", "0")
-	end if
-end DispAlb
+on changedispalb()
+	if dispalb = "0" then changepref("DispAlb", "1")
+	if dispalb = "1" then changepref("DispAlb", "0")
+end changedispalb
 
-on NumOfNot()
-	set NumNot to (do shell script "defaults read " & preffile & " 'NumOfNot'") as string
+on changenumofnot()
 	repeat
 		set q5 to (display dialog Â
-			"MusiNotify currently displays " & NumNot & " notifications in the sidebar." & return & return & Â
-			"How many notifications would you like displayed in the sidebar? (Enter a number ³ 0)" default answer "" & NumNot & Â
+			"MusiNotify currently displays " & numofnot & " notifications in the sidebar." & return & return & Â
+			"How many notifications would you like displayed in the sidebar? (Enter a number ³ 0)" default answer "" & numofnot & Â
 			"" with title "MusiNotify Preferences" default button 2)
 		try
 			set newnum to text returned of q5 as integer
@@ -110,17 +97,14 @@ on NumOfNot()
 	end repeat
 	set newnum to newnum as text
 	changepref("NumOfNot", newnum)
-end NumOfNot
+end changenumofnot
 
-on RemoveOnQuit()
-	set removeon to (do shell script "defaults read " & preffile & " 'RemoveOnQuit'") as string
-	if removeon = "1" then set RemoveEnabled to "removes"
-	if removeon = "0" then set RemoveEnabled to "does not remove"
-	set q6 to button returned of (display dialog "MusiNotify currently " & RemoveEnabled & " notifications in the sidebar when iTunes or Spotify quit." & return & return & Â
-		"Would you like the notifications to be cleared after quitting?" buttons {"Cancel", "Yes", "No"} with title "MusiNotify Preferences")
-	if q6 is "Yes" and removeon = "0" then
-		changepref("RemoveOnQuit", "1")
-	else if q6 is "No" and removeon = "1" then
-		changepref("RemoveOnQuit", "0")
-	end if
-end RemoveOnQuit
+on changeremoveonquit()
+	if removeonquit = "0" then changepref("RemoveOnQuit", "1")
+	if removeonquit = "1" then changepref("RemoveOnQuit", "0")
+end changeremoveonquit
+
+on changeautoupdate()
+	if autoupdate = "0" then changepref("AutoUpdate", "1")
+	if autoupdate = "1" then changepref("AutoUpdate", "0")
+end changeautoupdate
