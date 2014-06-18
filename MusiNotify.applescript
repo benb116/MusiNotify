@@ -3,7 +3,7 @@ global DispArt, DispAlb, NumOfNot, RemoveOnQuit, sid, iid, x, y, Notif, thanked,
 try
 	CheckSystemVersion() -- Check to make sure that the user is running OS X 10.8
 	set preffile to "com.BenB116.MusiNotify.plist"
-	set CurrentAppVersion to "4.6.1"
+	set CurrentAppVersion to "4.6.2"
 end try
 try
 	if not CheckPrefFile() then FirstPrefSetup() -- If the preference fle doesn't exist, then make one and do a first-run setup
@@ -52,7 +52,8 @@ end repeat
 on CheckSystemVersion()
 	try
 		set vers to (do shell script "sw_vers -productVersion | cut -d '.' -f 1-2") -- Get Version of OS X
-		if vers is not equal to "10.8" and vers is not equal to "10.9" then -- If user is not running 10.8 or 10.9...
+		set CompOS to {"10.8", "10.9", "10.10"}
+		if CompOS does not contain vers then -- If user is not running 10.8 or 10.9...
 			display dialog "Sorry. This app requires OSX 10.8+" buttons ("OK") with icon (path to resource "applet.icns") -- Display explanation
 			KillMusiNotify() -- Quit
 		end if
@@ -127,11 +128,31 @@ on InitialSetup()
 		-- Define variables
 		set x to 0
 		set y to 0
-		set Notif to (POSIX path of (path to me)) & "/Contents/Resources/terminal-notifier"
-		
+		set Notif to (POSIX path of (path to me)) & "/Contents/Resources/terminal-notifier.app/Contents/MacOS/terminal-notifier"
+		set sid to ""
+		set iid to ""
+		set rawlines to paragraphs of (do shell script "defaults read " & preffile)
+		repeat with lin in rawlines
+			if lin contains "AutoUpdate" then set autoupdatepref to (characters 17 thru -2 of lin) as text
+			if lin contains "SpotLast" then
+				try
+					set sid to (characters 17 thru -3 of lin) as text
+				on error
+					set sid to ""
+				end try
+			end if
+			if lin contains "iTunLast" then
+				try
+					set iid to (characters 16 thru -2 of lin) as text
+				on error
+					set iid to ""
+				end try
+			end if
+		end repeat
+		log sid
 		try
 			do shell script "defaults write " & preffile & " 'CurrentAppVersion' '" & CurrentAppVersion & "'"
-			if (do shell script "defaults read " & preffile & " 'AutoUpdate'") = "1" then -- If auto-updating is enabled
+			if autoupdatepref = "1" then -- If auto-updating is enabled
 				do shell script "open " & POSIX path of (path to me) & quoted form of ("Contents/Resources/MusiNotify Updater.app") -- Run Update Checker
 			end if
 		end try
@@ -141,14 +162,15 @@ on InitialSetup()
 			set newgrop to paragraphs -2 thru 2 of previousspotgroups as list
 			set spotgroups to {}
 			repeat with t in newgrop
-				set newraw to do shell script "echo '" & t & "' | cut -d ' ' -f 5 | cut -d ',' -f 1"
+				set newraw to (characters 5 thru -2) of t
+				
 				set end of spotgroups to (newraw as integer)
 			end repeat
 			set spotgroups to (items 2 thru -1 of spotgroups) -- Format groups and add to list
 		on error
 			set spotgroups to {}
 		end try
-		
+		log spotgroups
 		try
 			set previousitungroups to do shell script "defaults read " & preffile & " 'iTunesCurrentGroups'" -- Read previous groups from preffile
 			set newgrop to paragraphs 2 thru -2 of previousitungroups as list
@@ -160,18 +182,6 @@ on InitialSetup()
 			set Itungroups to (items 2 thru -1 of Itungroups) -- Format groups and add to list
 		on error
 			set Itungroups to {}
-		end try
-		
-		try
-			set sid to do shell script "defaults read " & preffile & " 'SpotLast'"
-		on error
-			set sid to ""
-		end try
-		
-		try
-			set iid to do shell script "defaults read " & preffile & " 'iTunLast'"
-		on error
-			set iid to ""
 		end try
 		
 		try
@@ -235,6 +245,7 @@ on CheckSpotify()
 					if DispArt = "1" and tart is not equal to "" then set sart to "By " & tart
 					set salb to " "
 					if DispAlb = "1" and talb is not equal to "" then set salb to "On " & talb
+					log "check1"
 					
 					set theID to SpotDet() -- Get the ID
 					set xid to "-group SP" & theID as text

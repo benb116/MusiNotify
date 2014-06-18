@@ -1,5 +1,5 @@
-4.6.1
+4.6.2
 New Features
-- Bug fix involving ask for updates every launch
-- Auto-Updating (preference in the preffile)
-- Preference File cleaned up and redone
+- Bug fixes and support for Yosemite
+- Fixed Updater link
+- Cleaned up initial setup

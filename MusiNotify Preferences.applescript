@@ -28,8 +28,10 @@ if removeonquit = "0" then set isclearquit to ""
 if autoupdate = "1" then set isautoupdate to "Don't "
 if autoupdate = "0" then set isautoupdate to ""
 
-set q1 to (choose from list {isiTunEnab & "iTunes Notifications", isSpotEnab & "Spotify Notifications", isloginitem & "Login Item", isart & "Display Artist Name", isalb & "Display Album Name", "Number of Notifications in Sidebar", isclearquit & "Clear Notifications on Quit", isautoupdate & "Auto-Update"} Â
-	with prompt "Which preferences would you like to change?" with title "MusiNotify Preferences" with multiple selections allowed)
+try
+	set q1 to (choose from list {isiTunEnab & "iTunes Notifications", isSpotEnab & "Spotify Notifications", isloginitem & "Login Item", isart & "Display Artist Name", isalb & "Display Album Name", "Number of Notifications in Sidebar", isclearquit & "Clear Notifications on Quit", isautoupdate & "Auto-Update"} Â
+		with prompt "Which preferences would you like to change?" with title "MusiNotify Preferences" with multiple selections allowed)
+end try
 
 try
 	repeat with pref in q1
