@@ -1,5 +1,6 @@
-4.6.2
+4.6.2.1
 New Features
+- App remains hidden
 - Bug fixes and support for Yosemite
 - Fixed Updater link
 - Cleaned up initial setup
