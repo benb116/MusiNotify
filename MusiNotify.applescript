@@ -3,7 +3,7 @@ global DispArt, DispAlb, NumOfNot, RemoveOnQuit, sid, iid, x, y, Notif, thanked,
 try
 	CheckSystemVersion() -- Check to make sure that the user is running OS X 10.8
 	set preffile to "com.BenB116.MusiNotify.plist"
-	set CurrentAppVersion to "4.7.0"
+	set CurrentAppVersion to "4.7.1"
 end try
 try
 	if not CheckPrefFile() then FirstPrefSetup() -- If the preference fle doesn't exist, then make one and do a first-run setup
@@ -14,7 +14,10 @@ repeat -- Main Loop
 	ReadPrefs() -- Read preference value
 	
 	try
-		tell application "System Events" to set applist to (name of every process whose background only is false) -- See which apps are running
+		delay 0.5
+		tell application "System Events"
+			set applist to (name of every process) -- See which apps are running
+		end tell
 	end try
 	if applist contains "Spotify" or applist contains "iTunes" then
 		if applist contains "Spotify" and spotinotify = "1" then -- If Spotify is running and notifications are enabled...
@@ -43,7 +46,6 @@ repeat -- Main Loop
 				do shell script "defaults write " & preffile & " 'iTuLast' '" & iid & "'" -- Reset
 			end if
 		end if
-		delay 0.5
 	else -- If neither app is running...
 		delay 2 -- Larger delay to reduce CPU usage
 	end if
@@ -154,21 +156,19 @@ on InitialSetup()
 			set newgrop to paragraphs -2 thru 2 of previousspotgroups as list
 			set spotgroups to {}
 			repeat with t in newgrop
-				set newraw to (characters 5 thru -2) of t
-				
+				set newraw to do shell script "echo " & t & " | cut -d ',' -f 1"
 				set end of spotgroups to (newraw as integer)
 			end repeat
-			set spotgroups to (items 2 thru -1 of spotgroups) -- Format groups and add to list
+			set spotgroups to (items 1 thru -2 of spotgroups) -- Format groups and add to list
 		on error
 			set spotgroups to {}
 		end try
-		log spotgroups
 		try
 			set previousitungroups to do shell script "defaults read " & preffile & " 'iTunesCurrentGroups'" -- Read previous groups from preffile
 			set newgrop to paragraphs 2 thru -2 of previousitungroups as list
 			set Itungroups to {}
 			repeat with t in newgrop
-				set newraw to do shell script "echo '" & t & "' | cut -d ' ' -f 5 | cut -d ',' -f 1"
+				set newraw to do shell script "echo " & t & " | cut -d ',' -f 1"
 				set end of Itungroups to (newraw as integer)
 			end repeat
 			set Itungroups to (items 2 thru -1 of Itungroups) -- Format groups and add to list
@@ -257,7 +257,7 @@ on CheckSpotify()
 						end try
 						do shell script quoted form of Notif & " -sender 'com.spotify.client' -remove SP0" -- Remove last notification
 					end if
-					
+					log spotgroups
 					set Formspotgroups to ""
 					repeat with z in spotgroups
 						set Formspotgroups to Formspotgroups & ((z as text) & ", ")

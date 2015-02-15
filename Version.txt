@@ -1,4 +1,3 @@
-4.7.0
+4.7.1
 New Features
-- Better support for 10.9, 10.10, new versions of iTunes
-- Better delays and speed improvements
+- Notification fix and more efficient
