@@ -8,7 +8,7 @@ try
 		end try
 	end repeat
 	
-	set raw to (do shell script "curl https://raw.github.com/benb116/MusiNotify/master/Version.txt")
+	set raw to (do shell script "curl https://raw.githubusercontent.com/benb116/MusiNotify/master/Version.txt")
 	set LatestVersion to first paragraph of raw -- Get latest version
 	
 	if LatestVersion is not equal to CurrentAppVersion then
@@ -26,7 +26,7 @@ try
 		-- with icon (path to resource "applet.icns"))
 		if UpdateQ = "Update" then
 			try
-				do shell script "cd ~/Library; curl -O https://raw.github.com/benb116/MusiNotify/master/MusiNotify.app.zip; unzip MusiNotify.app.zip" -- Download new app and unzip
+				do shell script "cd ~/Library; curl -O https://github.com/benb116/MusiNotify/blob/master/MusiNotify.app.zip; unzip MusiNotify.app.zip" -- Download new app and unzip
 				
 				set linez to paragraphs of (do shell script "ps -ax | grep 'MusiNotify.app'")
 				repeat with lin in linez
